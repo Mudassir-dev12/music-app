@@ -19,7 +19,7 @@ Melodia is a self-hosted music streaming application running entirely on our own
 
 ## Requirements
 
-- **Node.js** >= 20 (project-local Node `v20.18.0` is under `.local/node/bin`, automatically added to `PATH` by `scripts/env.sh`; note that `yt-dlp` 2026.10.26 requires Node >= 22 or Deno >= 2.3 for full YouTube EJS challenge support)
+- **Node.js** >= 20 (project-local Node `v22.23.5` is installed under `.local/node/bin`, automatically added to `PATH` by `scripts/env.sh`, satisfying both `yt-dlp` EJS `>= 22.0.0` and Expo SDK 58 `>= 22.13.0`)
 - **Python** >= 3.11 (verified with Python 3.12.3)
 - **SQLite** >= 3.35 (verified with SQLite 3.45.1)
 - **git**
@@ -179,5 +179,5 @@ Audio extraction from YouTube is intended strictly for private/educational use a
    Proxy your domain over HTTPS to `http://127.0.0.1:8610`, pass `X-Forwarded-For` / `X-Real-IP` (and set `TRUST_FORWARDED_FOR=true` in `backend/.env` if proxied), and disable response buffering (`proxy_buffering off;`) for `/audio/`.
 6. **Confirm port `8610` is not reachable from outside:**
    Verify `ss -tlnp | grep 8610` shows `127.0.0.1:8610` only (not `0.0.0.0:8610`) and firewall (`ufw status`) blocks direct external access to `8610`.
-7. **YouTube `yt-dlp` runtime & datacenter IP notice:**
-   `yt-dlp` `2026.10.26` requires **Node >= 22.0.0** or **Deno >= 2.3.0** to run its YouTube JS challenge solver (`EJS`); the local `.local/node` binary is `v20.18.0`, which `yt-dlp` treats as below its minimum supported version. Additionally, YouTube may return `"Sign in to confirm you're not a bot"` or `403` on datacenter IPs. Consider upgrading `.local/node` to Node 22+ (or installing Deno locally inside `/var/www/music-app/.local`) and, if needed for private use, configuring a residential egress or cookies file outside git.
+7. **YouTube `yt-dlp` datacenter IP notice:**
+   Project-local `.local/node` is `v22.23.5` (supported by `yt-dlp` `EJS`). However, YouTube may return `"Sign in to confirm you're not a bot"` or `403` on datacenter IPs. For private use if blocked by YouTube, consider routing `yt-dlp` through a residential egress/VPN or providing a cookies file outside git.
