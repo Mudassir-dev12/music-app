@@ -1,0 +1,39 @@
+# Environment & Secrets
+.env
+.env*.local
+*.env
+!.env.example
+
+# Sandboxed Home & Caches
+.home/
+.cache/
+.config/
+.local/
+.tmp/
+.npm-prefix/
+
+# Dependencies & Environments
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Databases & Backups
+data/
+backups/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Build & Dist
+dist/
+.expo/
+web-build/
+
+# Logs
+*.log
+logs/
