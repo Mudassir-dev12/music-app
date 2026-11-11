@@ -1,4 +1,4 @@
-# Melodia — Self-Hosted Music App (Phase 1 Foundation)
+# Melodia — Self-Hosted Music App (Phase 2)
 
 > **CRITICAL ENVIRONMENT NOTICE:** This project lives strictly inside `/var/www/music-app`. All development, virtualenvs, Node packages, caches (`.home/`, `.cache/`, `.config/`, `.local/`, `.tmp/`), SQLite data (`data/`), and backups (`backups/`) must remain inside `/var/www/music-app`. Always `source scripts/env.sh` before running any command. Never touch sibling `/var/www/*` directories or host system services.
 
@@ -6,14 +6,9 @@
 
 ## Overview
 
-Melodia is a self-hosted music streaming application running entirely on our own VPS (no Supabase or external backend-as-a-service). Phase 1 delivers:
-- A FastAPI backend (`backend/`) with its own account system (`POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /me`, `GET /me/usage`), Argon2id password hashing, HS256 access tokens, and rotating refresh tokens with reuse detection.
-- A SQLite database managed via SQLAlchemy 2.x (async + `aiosqlite`) and Alembic migrations.
-- Music search and track metadata via `ytmusicapi`, behind a swappable `MusicSource` interface (`sources/base.py`).
-- An audio proxy (`/audio/{video_id}`) using `yt-dlp` stream resolution with single-flight locking, `httpx` streaming with HTTP `Range` (`206`) and `HEAD` support, concurrency semaphore, and a daily/monthly bandwidth guard.
-- A Cache abstraction supporting Redis (when `REDIS_URL` is configured and reachable) or an in-memory LRU+TTL cache.
-- A database backup CLI (`python -m app.tools.backup`).
-- A minimal Expo Router + TypeScript shell (`app/`) verifying connectivity to `GET /health`.
+Melodia is a self-hosted music streaming application running entirely on our own VPS (no Supabase or external backend-as-a-service).
+- **Phase 1:** FastAPI backend (`backend/`), SQLite + Alembic, Argon2id accounts, HS256 JWT + rotating SHA-256 refresh tokens, `ytmusicapi` search/track metadata behind `MusicSource`, `yt-dlp` + `httpx` Range audio proxy, Redis/memory cache, per-user rate limit, bandwidth guard, and online SQLite backup CLI.
+- **Phase 2:** Signed short-lived audio tickets (`POST /audio/{video_id}/ticket`), Apple Music-style design system (`src/theme/tokens.ts`), responsive phone/tablet tab bar + Mini Player and desktop sidebar + PlayerBar, full Now Playing + Queue panel, web (`HTMLAudioElement` + Media Session + keyboard shortcuts) and native (`expo-audio` + lock-screen controls) player engines, single-flight token refresh, minimal sign-in/sign-up, functional Search tab, and Listen Now Recently Played + theme selector.
 
 ---
 
@@ -66,14 +61,16 @@ cd backend && .venv/bin/pytest -q
 cd /var/www/music-app && bash scripts/smoke.sh
 ```
 
-### 3. Expo web shell
+### 3. Client (Expo Router + TypeScript + Web)
 
 ```bash
 cd /var/www/music-app
 source scripts/env.sh
 cd app
 cp .env.example .env
-npx tsc --noEmit
+npm test               # Jest + React Native Testing Library (mocked engines/network)
+npx expo lint          # ESLint (expo flat config + React Compiler rules)
+npx tsc --noEmit       # Strict TypeScript check
 npx expo export --platform web
 ```
 
@@ -135,7 +132,14 @@ The Expo client communicates with the FastAPI backend over HTTPS/HTTP (`Authoriz
 2. `GET /health` -> cheap `SELECT 1` + cache backend status (public, unthrottled)
 3. `/auth/*` -> Argon2id hash/verify (bounded by `HASH_CONCURRENCY` semaphore), login brute-force counters, opaque rotating refresh tokens stored as SHA-256 hashes in SQLite
 4. `/search`, `/track/{video_id}` -> `get_current_user` -> `rate_limiter` -> cache lookup -> `YTMusicSource` (`anyio.to_thread`)
-5. `/audio/{video_id}` -> `get_current_user` -> `rate_limiter` -> `validate_video_id` -> `bandwidth_guard.check_limits` -> `MAX_CONCURRENT_STREAMS` semaphore -> `StreamResolver.get_stream` (single-flight + `yt-dlp`) -> `httpx` streaming proxy (`200`/`206`, `403/404/410` single re-resolve retry) -> record sent bytes in `finally`.
+5. `/audio/{video_id}/ticket` -> `get_current_user` -> `rate_limiter` -> issues short-lived (`AUDIO_TICKET_TTL_SECONDS`) `HS256` JWT scoped to `sub`, `vid`, `typ="audio"`.
+6. `/audio/{video_id}` (`GET`/`HEAD`) -> accepts Bearer access token OR `?t=<ticket>` -> `rate_limiter` -> `validate_video_id` -> `bandwidth_guard.check_limits` -> `MAX_CONCURRENT_STREAMS` semaphore -> `StreamResolver.get_stream` (single-flight + `yt-dlp`) -> `httpx` streaming proxy (`200`/`206`, `Referrer-Policy: no-referrer`, `403/404/410` single re-resolve retry) -> record sent bytes in `finally`.
+
+### Client Design System & Player Architecture
+
+- **Design system (`app/src/theme/`):** Typed light and dark tokens (`tokens.ts`), `ThemeProvider` (`system | light | dark` persisted locally) honoring system Reduce Motion, and responsive breakpoints via `useLayout()` (`phone < 768`, `tablet 768–1023`, `desktop >= 1024`).
+- **Audio ticket flow & web refresh token trade-off:** Browsers cannot attach `Authorization` headers to `<audio src>` requests. The client calls `POST /audio/{video_id}/ticket` with its Bearer access token (kept in memory) and plays `/audio/{video_id}?t=<ticket>`, caching tickets until 5 minutes before expiry and warming up the next track via `HEAD` at 50% progress. On native, the refresh token is stored in `expo-secure-store`; on web, it is stored in `localStorage` as the simplest SPA trade-off (requires strict XSS hygiene; moving it to an `HttpOnly` cookie is a future backend enhancement).
+- **Player (`app/src/player/` & `app/src/store/player.ts`):** Pure queue state machine (`queue.ts`) with `playNext` override queue, Fisher-Yates shuffle preserving the active track and restoring original order, `off | all | one` repeat, and debounced AsyncStorage persistence (restoring paused). Platform engines share `PlayerEngine` (`player.web.ts` with HTML5 Audio + Media Session + keyboard shortcuts; `player.native.ts` using `expo-audio` with background mode + lock-screen controls).
 
 ---
 
@@ -182,3 +186,24 @@ Audio extraction from YouTube is intended strictly for private/educational use a
    Verify `ss -tlnp | grep 8610` shows `127.0.0.1:8610` only (not `0.0.0.0:8610`) and firewall (`ufw status`) blocks direct external access to `8610`.
 7. **YouTube `yt-dlp` datacenter IP notice:**
    Project-local `.local/node` is `v22.23.5` (supported by `yt-dlp` `EJS`). However, YouTube may return `"Sign in to confirm you're not a bot"` or `403` on datacenter IPs. For private use if blocked by YouTube, consider routing `yt-dlp` through a residential egress/VPN or providing a cookies file outside git.
+8. **Export Figma frames for closer visual fidelity:**
+   Export key Figma frames (`Listen Now`, `Browse`, `Library`, `Search`, `Now Playing`, `Mini Player`) as PNGs into `design-reference/` if you want future phases to refine pixel details against the Figma kit.
+9. **Create a native dev build on your own machine (iOS/Android background playback & lock-screen controls):**
+   Native builds cannot be produced on this Linux server (requires Xcode on macOS or Android SDK/Studio). On your workstation:
+   ```bash
+   cd app
+   npm install
+   npx expo prebuild
+   # iOS (macOS + Xcode):
+   npx expo run:ios
+   # Android (Android SDK / emulator or USB device):
+   npx expo run:android
+   ```
+   Test background playback, lock-screen metadata, and remote Next/Previous/Play/Pause controls on a physical device.
+10. **Run Playwright visual & browser audio checks on a desktop/machine with Chromium libraries:**
+    Chromium system libraries (`libatk-1`, `libasound`) are missing on this shared headless VPS (and free RAM is ~600 MiB), so visual browser screenshots were skipped here per Phase 2 rules. On a machine with Chromium dependencies:
+    ```bash
+    cd /var/www/music-app && source scripts/env.sh
+    PLAYWRIGHT_BROWSERS_PATH=/var/www/music-app/.cache/ms-playwright npx playwright install chromium
+    # Serve app/dist + backend, verify 390x844 and 1440x900 layouts, audio currentTime, seeking, and Media Session
+    ```
