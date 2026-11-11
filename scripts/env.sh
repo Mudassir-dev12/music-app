@@ -14,10 +14,11 @@ export PIP_CACHE_DIR="$ROOT/.cache/pip"
 export PIP_REQUIRE_VIRTUALENV=1                # pip refuses to run outside a venv
 export EXPO_NO_TELEMETRY=1
 export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="$ROOT/backend:${PYTHONPATH:-}"
 
 # Prepend project-local node to PATH if present
 if [ -d "$ROOT/.local/node/bin" ]; then
     export PATH="$ROOT/.local/node/bin:$PATH"
 fi
 
-mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$TMPDIR" "$npm_config_cache" "$PIP_CACHE_DIR"
+mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$TMPDIR" "$npm_config_cache" "$npm_config_prefix/lib" "$PIP_CACHE_DIR"
