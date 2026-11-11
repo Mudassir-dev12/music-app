@@ -19,6 +19,11 @@ def run_backup(keep: int = 7) -> str:
     else:
         db_path = "./data/music.db"
 
+    if not os.path.exists(db_path) and db_path.startswith("./"):
+        backend_rel = os.path.join("backend", db_path[2:])
+        if os.path.exists(backend_rel):
+            db_path = backend_rel
+
     if not os.path.exists(db_path):
         print(f"Source database file does not exist: {db_path}", file=sys.stderr)
         return ""
