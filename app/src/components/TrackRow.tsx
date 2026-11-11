@@ -55,7 +55,7 @@ export function TrackRow({
           <Ionicons name="musical-note" size={layoutTokens.iconSizeMd} color={colors.textTertiary} />
         )}
         {isCurrent ? (
-          <View style={[styles.eqOverlay, { backgroundColor: colors.overlayMedium }]}>
+          <View style={[StyleSheet.absoluteFill, styles.eqOverlay, { backgroundColor: colors.overlayMedium }]}>
             <EqualizerBars playing={isPlaying} color={colors.onAccent} />
           </View>
         ) : null}
@@ -136,7 +136,6 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   eqOverlay: {
-    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
