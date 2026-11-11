@@ -10,6 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useLayout } from '@/hooks/useLayout';
+import { getCurrentTrack } from '@/player/queue';
+import { usePlayerStore } from '@/store/player';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layoutTokens, spacing, typography } from '@/theme/tokens';
 
@@ -26,13 +28,22 @@ export function Screen({
   title,
   headerRight,
   children,
-  bottomInset = spacing.xxl,
+  bottomInset,
   scrollEnabled = true,
   testID,
 }: ScreenProps) {
   const { colors } = useTheme();
-  const { pagePadding } = useLayout();
+  const { pagePadding, isDesktop } = useLayout();
+  const hasCurrentTrack = usePlayerStore((s) => Boolean(getCurrentTrack(s)));
   const [collapsed, setCollapsed] = useState(false);
+
+  const computedBottomInset =
+    bottomInset ??
+    (isDesktop
+      ? spacing.xxl
+      : layoutTokens.tabBarHeight +
+        (hasCurrentTrack ? layoutTokens.miniPlayerHeight : 0) +
+        spacing.xxl);
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
@@ -79,7 +90,7 @@ export function Screen({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
-          { paddingHorizontal: pagePadding, paddingBottom: bottomInset },
+          { paddingHorizontal: pagePadding, paddingBottom: computedBottomInset },
         ]}
       >
         <Text

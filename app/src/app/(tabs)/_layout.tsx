@@ -1,17 +1,30 @@
 import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { DesktopSidebar } from '@/components/DesktopSidebar';
+import { MiniPlayer } from '@/components/MiniPlayer';
+import { NowPlaying } from '@/components/NowPlaying';
+import { PlayerBar } from '@/components/PlayerBar';
+import { QueueModal } from '@/components/QueuePanel';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useLayout } from '@/hooks/useLayout';
+import { usePlayerStore } from '@/store/player';
 import { useTheme } from '@/theme/ThemeProvider';
 import { layoutTokens } from '@/theme/tokens';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
   const { isDesktop } = useLayout();
+  const restorePlayer = usePlayerStore((s) => s.restore);
+
+  useEffect(() => {
+    void restorePlayer();
+  }, [restorePlayer]);
+
+  useKeyboardShortcuts(true);
 
   return (
     <View style={[styles.shell, { backgroundColor: colors.background }]}>
@@ -95,8 +108,14 @@ export default function TabsLayout() {
               }}
             />
           </Tabs>
+
+          {!isDesktop ? <MiniPlayer /> : null}
         </View>
       </View>
+
+      {isDesktop ? <PlayerBar /> : null}
+      <NowPlaying />
+      <QueueModal />
     </View>
   );
 }
