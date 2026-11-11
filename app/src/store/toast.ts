@@ -39,3 +39,4 @@ export const useToastStore = create<ToastState>((set) => ({
     set({ current: null });
   },
 }));
+

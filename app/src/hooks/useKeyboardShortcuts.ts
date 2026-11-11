@@ -70,3 +70,4 @@ export function useKeyboardShortcuts(enabled: boolean): void {
     };
   }, [enabled]);
 }
+

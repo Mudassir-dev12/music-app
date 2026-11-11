@@ -43,12 +43,13 @@ export default function SearchScreen() {
 
   const playerStore = usePlayerStore();
   const currentTrack = getCurrentTrack(playerStore);
+  const paramQ = typeof params.q === 'string' ? params.q.trim() : '';
+  const [lastParamQ, setLastParamQ] = useState(paramQ);
 
-  useEffect(() => {
-    if (typeof params.q === 'string' && params.q.trim()) {
-      setQuery(params.q);
-    }
-  }, [params.q]);
+  if (paramQ && paramQ !== lastParamQ) {
+    setLastParamQ(paramQ);
+    setQuery(paramQ);
+  }
 
   useEffect(() => {
     AsyncStorage.getItem(RECENT_SEARCHES_KEY)
@@ -85,15 +86,13 @@ export default function SearchScreen() {
 
   const searchQuery = useQuery({
     queryKey: ['search', 'songs', debouncedQuery],
-    queryFn: () => api.searchSongs(debouncedQuery, 25),
+    queryFn: async () => {
+      const res = await api.searchSongs(debouncedQuery, 25);
+      saveRecentSearch(debouncedQuery);
+      return res;
+    },
     enabled: debouncedQuery.length > 0,
   });
-
-  useEffect(() => {
-    if (searchQuery.isSuccess && debouncedQuery) {
-      saveRecentSearch(debouncedQuery);
-    }
-  }, [debouncedQuery, saveRecentSearch, searchQuery.isSuccess]);
 
   const results = searchQuery.data?.results ?? [];
 

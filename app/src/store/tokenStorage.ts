@@ -58,3 +58,4 @@ export async function clearStoredRefreshToken(): Promise<void> {
     // Ignore
   }
 }
+

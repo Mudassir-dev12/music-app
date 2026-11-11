@@ -8,3 +8,4 @@ Per Phase 2 Section 3.3, Section 5 of the Phase 2 specification serves as the au
 - **Breakpoints:** phone `< 768`, tablet `768-1023`, desktop `>= 1024`
 - **Desktop sidebar width:** `260px`; **Desktop player bar height:** `72-80px`
 - **Artwork:** small `44px` (MiniPlayer) / `48px` (TrackRow), hero `min(400px, screenWidth - 64px)`, scale `0.86` paused -> `1.0` playing with spring (`damping: 18, stiffness: 180`).
+

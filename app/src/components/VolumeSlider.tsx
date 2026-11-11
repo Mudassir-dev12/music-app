@@ -1,5 +1,11 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { type LayoutChangeEvent, PanResponder, Platform, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
+  Platform,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { IconButton } from '@/components/IconButton';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -19,34 +25,35 @@ export function VolumeSlider({
   testID,
 }: VolumeSliderProps) {
   const { colors } = useTheme();
-  const [trackWidth, setTrackWidth] = useState(1);
+  const trackWidthRef = useRef(1);
+  const startPageXRef = useRef(0);
   const startVolRef = useRef(volume);
   const lastNonZeroRef = useRef(volume > 0 ? volume : 0.8);
 
-  if (volume > 0) {
-    lastNonZeroRef.current = volume;
-  }
+  useEffect(() => {
+    if (volume > 0) {
+      lastNonZeroRef.current = volume;
+    }
+  }, [volume]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (evt) => {
-          const next = Math.min(1, Math.max(0, evt.nativeEvent.locationX / Math.max(1, trackWidth)));
-          startVolRef.current = next;
-          onChange(next);
-        },
-        onPanResponderMove: (_, gestureState) => {
-          const next = Math.min(
-            1,
-            Math.max(0, startVolRef.current + gestureState.dx / Math.max(1, trackWidth))
-          );
-          onChange(next);
-        },
-      }),
-    [onChange, trackWidth]
-  );
+  const handleGrant = (evt: GestureResponderEvent) => {
+    const next = Math.min(
+      1,
+      Math.max(0, evt.nativeEvent.locationX / Math.max(1, trackWidthRef.current))
+    );
+    startPageXRef.current = evt.nativeEvent.pageX;
+    startVolRef.current = next;
+    onChange(next);
+  };
+
+  const handleMove = (evt: GestureResponderEvent) => {
+    const dx = evt.nativeEvent.pageX - startPageXRef.current;
+    const next = Math.min(
+      1,
+      Math.max(0, startVolRef.current + dx / Math.max(1, trackWidthRef.current))
+    );
+    onChange(next);
+  };
 
   // Native devices use hardware volume buttons
   if (Platform.OS !== 'web') {
@@ -70,8 +77,13 @@ export function VolumeSlider({
       />
       <View
         style={styles.touchArea}
-        onLayout={(e: LayoutChangeEvent) => setTrackWidth(Math.max(1, e.nativeEvent.layout.width))}
-        {...panResponder.panHandlers}
+        onLayout={(e: LayoutChangeEvent) => {
+          trackWidthRef.current = Math.max(1, e.nativeEvent.layout.width);
+        }}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={handleGrant}
+        onResponderMove={handleMove}
         accessibilityRole="adjustable"
         accessibilityLabel="Volume"
       >

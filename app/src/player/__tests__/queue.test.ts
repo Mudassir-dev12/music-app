@@ -160,3 +160,4 @@ describe('queue pure logic', () => {
     expect(s.playNext).toEqual([]);
   });
 });
+

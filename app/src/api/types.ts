@@ -47,3 +47,4 @@ export interface UsageResponse {
   month_global_bytes: number;
   month_global_limit_bytes: number;
 }
+

@@ -49,3 +49,27 @@ jest.mock('expo-linear-gradient', () => {
     LinearGradient: ({ children, ...props }: any) => React.createElement(View, props, children),
   };
 });
+
+jest.mock('react-native-reanimated', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: {
+      View: ({ children, ...props }: any) => React.createElement(View, props, children),
+      createAnimatedComponent: (Comp: any) => Comp,
+    },
+    useSharedValue: (init: any) => ({ value: init }),
+    useAnimatedStyle: (fn: () => any) => fn(),
+    withSpring: (val: any) => val,
+    withTiming: (val: any) => val,
+    withRepeat: (val: any) => val,
+    withSequence: (...vals: any[]) => vals[0],
+    withDelay: (_d: number, val: any) => val,
+    Easing: {
+      linear: (x: number) => x,
+      out: () => (x: number) => x,
+      quad: (x: number) => x,
+    },
+  };
+});

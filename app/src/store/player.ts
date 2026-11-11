@@ -615,3 +615,4 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
 registerSessionCleanup(() => {
   usePlayerStore.getState().resetOnSignOut();
 });
+

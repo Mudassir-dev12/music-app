@@ -25,3 +25,4 @@ export function getInitials(displayName?: string | null, email?: string | null):
   }
   return source.slice(0, 2).toUpperCase();
 }
+

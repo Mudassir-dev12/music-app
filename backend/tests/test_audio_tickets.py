@@ -174,3 +174,4 @@ async def test_audio_ticket_lifecycle_and_validation(client: AsyncClient, caplog
         await db.commit()
     await get_cache().delete(f"uact:{user_id}")
     assert (await client.get(t_body["url"])).status_code == 401
+
