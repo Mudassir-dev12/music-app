@@ -70,6 +70,7 @@ class AudioProxy:
             headers = {
                 "Accept-Ranges": "bytes",
                 "Cache-Control": "private, no-store",
+                "Referrer-Policy": "no-referrer",
             }
             if "content-type" in resp.headers:
                 headers["Content-Type"] = resp.headers["content-type"]
@@ -140,6 +141,7 @@ class AudioProxy:
             res_headers = {
                 "Accept-Ranges": "bytes",
                 "Cache-Control": "private, no-store",
+                "Referrer-Policy": "no-referrer",
             }
             if "content-type" in upstream_resp.headers:
                 res_headers["Content-Type"] = upstream_resp.headers["content-type"]

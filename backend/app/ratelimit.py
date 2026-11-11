@@ -1,15 +1,12 @@
 import time
 from fastapi import Depends, HTTPException, Request, status
-from app.auth.deps import get_current_user
+from app.auth.deps import get_audio_user, get_current_user
 from app.cache.factory import get_cache
 from app.config import settings
 from app.db.models import User
 
 
-async def rate_limiter(
-    request: Request,
-    user: User = Depends(get_current_user),
-) -> User:
+async def enforce_rate_limit(user: User) -> User:
     if settings.RATE_LIMIT_PER_MIN <= 0:
         return user
 
@@ -27,3 +24,17 @@ async def rate_limiter(
             headers={"Retry-After": str(max(1, seconds_left))},
         )
     return user
+
+
+async def rate_limiter(
+    request: Request,
+    user: User = Depends(get_current_user),
+) -> User:
+    return await enforce_rate_limit(user)
+
+
+async def audio_rate_limiter(
+    request: Request,
+    user: User = Depends(get_audio_user),
+) -> User:
+    return await enforce_rate_limit(user)

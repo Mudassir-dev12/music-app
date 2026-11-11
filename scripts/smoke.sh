@@ -175,6 +175,22 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
     p_track = (r_track.status_code == 200 and r_track.json().get("video_id") == target_vid)
     report(7, f"GET /track/{target_vid} -> 200", p_track)
 
+    # 7b. POST /audio/{id}/ticket -> 200 and mismatched video_id with ticket -> 401
+    r_ticket = client.post(f"/audio/{target_vid}/ticket", headers=auth_headers)
+    ticket_data = r_ticket.json() if r_ticket.status_code == 200 else {}
+    ticket_url = ticket_data.get("url", "")
+    other_vid = "aaaaaaaaaaa" if target_vid != "aaaaaaaaaaa" else "bbbbbbbbbbb"
+    ticket_q = ticket_url.split("?", 1)[1] if "?" in ticket_url else ""
+    r_ticket_mismatch = client.get(f"/audio/{other_vid}?{ticket_q}") if ticket_q else None
+    p_ticket = (
+        r_ticket.status_code == 200
+        and ticket_url.startswith(f"/audio/{target_vid}?t=")
+        and ticket_data.get("expires_in", 0) > 0
+        and r_ticket_mismatch is not None
+        and r_ticket_mismatch.status_code == 401
+    )
+    report(8, f"POST /audio/{target_vid}/ticket -> 200 & wrong video_id -> 401", p_ticket)
+
     # 8. GET /audio/{id} with Range: bytes=0-1023
     r_audio = client.get(f"/audio/{target_vid}", headers={**auth_headers, "Range": "bytes=0-1023"})
     p_a_status = (r_audio.status_code == 206)
@@ -187,25 +203,34 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
     if "mp4" in ct:
         p_ftyp = (r_audio.content[4:8] == b"ftyp")
 
-    report(8, f"GET /audio/{target_vid} Range: bytes=0-1023 (status=206, len=1024, audio type, ftyp check)", 
+    report(9, f"GET /audio/{target_vid} Range: bytes=0-1023 (status=206, len=1024, audio type, ftyp check)", 
            (p_a_status and p_a_cr and p_a_ct and p_a_len and p_ftyp))
+
+    # 9b. GET {ticket_url} with Range: bytes=0-1023 and NO Authorization header -> 206, 1024 bytes
+    r_ticket_audio = client.get(ticket_url, headers={"Range": "bytes=0-1023"})
+    p_ta = (
+        r_ticket_audio.status_code == 206
+        and len(r_ticket_audio.content) == 1024
+        and r_ticket_audio.headers.get("referrer-policy") == "no-referrer"
+    )
+    report(10, f"GET {target_vid}?t=<ticket> Range: bytes=0-1023 (no Auth header -> 206, 1024 bytes)", p_ta)
 
     # 9. GET /audio/{id} with Range: bytes=1000000-1000999 (seeking)
     r_seek = client.get(f"/audio/{target_vid}", headers={**auth_headers, "Range": "bytes=1000000-1000999"})
     p_seek = (r_seek.status_code == 206 and len(r_seek.content) == 1000)
-    report(9, f"GET /audio/{target_vid} Range: bytes=1000000-1000999 (seeking -> 206)", p_seek)
+    report(11, f"GET /audio/{target_vid} Range: bytes=1000000-1000999 (seeking -> 206)", p_seek)
 
     # 10. HEAD /audio/{id} -> 200 with Accept-Ranges
     r_head = client.head(f"/audio/{target_vid}", headers=auth_headers)
     p_head = (r_head.status_code == 200 and r_head.headers.get("accept-ranges") == "bytes")
-    report(10, f"HEAD /audio/{target_vid} -> 200 with Accept-Ranges: bytes", p_head)
+    report(12, f"HEAD /audio/{target_vid} -> 200 with Accept-Ranges: bytes", p_head)
 
     # 11. Usage flush & check
     print("Waiting 16 seconds for background bandwidth flush...")
     time.sleep(16)
     r_usage = client.get("/me/usage", headers=auth_headers)
     p_usage = (r_usage.status_code == 200 and r_usage.json().get("today_bytes", 0) > 0)
-    report(11, "GET /me/usage shows today_bytes > 0 after background flush", p_usage, f"({r_usage.json().get('today_bytes')} bytes)")
+    report(13, "GET /me/usage shows today_bytes > 0 after background flush", p_usage, f"({r_usage.json().get('today_bytes')} bytes)")
 
     # 12. CORS preflight
     r_cors = client.options("/search", headers={
@@ -214,19 +239,19 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
         "Access-Control-Request-Headers": "authorization,range"
     })
     p_cors = ("access-control-allow-origin" in r_cors.headers)
-    report(12, "CORS preflight for http://localhost:8081 allowed", p_cors)
+    report(14, "CORS preflight for http://localhost:8081 allowed", p_cors)
 
     # 13. Malformed video id -> 400
     r_bad_vid = client.get("/audio/not-a-valid-id", headers=auth_headers)
     p_bad_vid = (r_bad_vid.status_code == 400)
-    report(13, "GET /audio/not-a-valid-id -> 400", p_bad_vid)
+    report(15, "GET /audio/not-a-valid-id -> 400", p_bad_vid)
 
     # 14. Logout and refresh fails
     r_logout = client.post("/auth/logout", json={"refresh_token": refresh_token})
     p_logout = (r_logout.status_code == 204)
     r_ref_after = client.post("/auth/refresh", json={"refresh_token": refresh_token})
     p_revoked = (r_ref_after.status_code == 401)
-    report(14, "POST /auth/logout revokes token, subsequent refresh fails (401)", (p_logout and p_revoked))
+    report(16, "POST /auth/logout revokes token, subsequent refresh fails (401)", (p_logout and p_revoked))
 
-print("\nAll 14 smoke tests PASSED successfully!")
+print("\nAll 16 smoke tests PASSED successfully!")
 EOF

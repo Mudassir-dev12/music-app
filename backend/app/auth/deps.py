@@ -1,10 +1,10 @@
 import datetime
 from typing import Optional
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.auth.tokens import verify_access_token
+from app.auth.tokens import verify_access_token, verify_audio_ticket
 from app.cache.factory import get_cache
 from app.config import settings
 from app.db.models import User
@@ -24,29 +24,11 @@ def get_client_ip(request: Request) -> str:
     return "127.0.0.1"
 
 
-async def get_current_user(
+async def _resolve_active_user(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: AsyncSession = Depends(get_db_session),
+    user_id: Optional[str],
+    db: AsyncSession,
 ) -> User:
-    if not credentials or not credentials.credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication credentials were not provided.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    token = credentials.credentials
-    try:
-        payload = verify_access_token(token)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired authentication token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -97,3 +79,64 @@ async def get_current_user(
 
     request.state.user_id = user.id
     return user
+
+
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db_session),
+) -> User:
+    if not credentials or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials were not provided.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = credentials.credentials
+    try:
+        payload = verify_access_token(token)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired authentication token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return await _resolve_active_user(request, payload.get("sub"), db)
+
+
+async def get_audio_user(
+    video_id: str,
+    request: Request,
+    t: Optional[str] = Query(None),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db_session),
+) -> User:
+    if t is not None:
+        try:
+            payload = verify_audio_ticket(t, video_id)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired audio ticket.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return await _resolve_active_user(request, payload.get("sub"), db)
+
+    if credentials and credentials.credentials:
+        try:
+            payload = verify_access_token(credentials.credentials)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired authentication token.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return await _resolve_active_user(request, payload.get("sub"), db)
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication credentials were not provided.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )

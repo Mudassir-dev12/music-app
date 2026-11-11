@@ -97,6 +97,7 @@ npx expo export --platform web
 | `ACCESS_TOKEN_TTL_MIN` | `15` | Access token lifetime in minutes |
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | Refresh token lifetime in days |
 | `REFRESH_REUSE_GRACE_SECONDS` | `10` | Grace window before replayed refresh token revokes whole token family |
+| `AUDIO_TICKET_TTL_SECONDS` | `7200` | Signed `/audio/{video_id}?t=` ticket lifetime in seconds |
 | `ALLOW_REGISTRATION` | `true` | Enable/disable `POST /auth/register` |
 | `REGISTRATION_INVITE_CODE` | `""` | If non-empty, `/auth/register` requires matching `invite_code` |
 | `MAX_USERS` | `100` | Maximum registered users (`0` = unlimited) |

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_TTL_MIN: int = 15
     REFRESH_TOKEN_TTL_DAYS: int = 30
     REFRESH_REUSE_GRACE_SECONDS: int = 10
+    AUDIO_TICKET_TTL_SECONDS: int = 7200
 
     ALLOW_REGISTRATION: bool = True
     REGISTRATION_INVITE_CODE: str = ""
