@@ -119,7 +119,22 @@ export async function apiFetch<T>(
     if (useAuth && token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
-    return fetch(url, { ...init, headers });
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try {
+      return await fetch(url, { ...init, headers, signal: init.signal ?? controller.signal });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error(`Connection timed out reaching ${baseUrl}. Ensure backend is running.`);
+      }
+      if (err instanceof TypeError || (err instanceof Error && err.message.toLowerCase().includes('fetch'))) {
+        throw new Error(`Cannot connect to server at ${baseUrl}. Ensure backend is running.`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
   };
 
   let response = await execute(useAuth ? bridge.getAccessToken() : null);
