@@ -111,3 +111,4 @@ class _ShuffleIntent extends Intent {
 class _RepeatIntent extends Intent {
   const _RepeatIntent();
 }
+

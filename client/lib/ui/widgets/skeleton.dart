@@ -61,3 +61,4 @@ class _SkeletonBoxState extends State<SkeletonBox>
     );
   }
 }
+

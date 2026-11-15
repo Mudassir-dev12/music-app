@@ -10,3 +10,4 @@ if [ -f "$ROOT/backend/.venv/bin/activate" ]; then
 elif [ -f "$ROOT/backend/.venv/Scripts/activate" ]; then
     source "$ROOT/backend/.venv/Scripts/activate"
 fi
+

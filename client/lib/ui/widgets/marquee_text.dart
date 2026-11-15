@@ -98,3 +98,4 @@ class _MarqueeTextState extends State<MarqueeText>
     );
   }
 }
+

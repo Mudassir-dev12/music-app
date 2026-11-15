@@ -46,3 +46,4 @@ class PlayerStateData {
         queue: QueueState.empty(),
       );
 }
+

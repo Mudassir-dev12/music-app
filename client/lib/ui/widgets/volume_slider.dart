@@ -53,3 +53,4 @@ class VolumeSlider extends StatelessWidget {
     );
   }
 }
+

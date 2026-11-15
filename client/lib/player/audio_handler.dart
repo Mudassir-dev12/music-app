@@ -122,3 +122,4 @@ class MelodiaAudioHandler extends BaseAudioHandler with SeekHandler {
   Stream<Duration?> get durationStream => _player.durationStream;
   Stream<PlayerState> get playerStateStream => _player.playerStateStream;
 }
+

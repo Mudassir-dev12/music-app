@@ -29,3 +29,4 @@ class AlbumCarousel extends StatelessWidget {
     );
   }
 }
+

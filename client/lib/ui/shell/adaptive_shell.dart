@@ -76,3 +76,4 @@ class AdaptiveShell extends StatelessWidget {
     );
   }
 }
+
