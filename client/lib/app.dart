@@ -7,8 +7,6 @@ import 'session/session_controller.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'theme/tokens.dart';
-import 'ui/screens/auth/sign_in_screen.dart';
-import 'ui/screens/auth/sign_up_screen.dart';
 import 'ui/screens/browse_screen.dart';
 import 'ui/screens/library_screen.dart';
 import 'ui/screens/listen_now_screen.dart';
@@ -23,22 +21,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/listen-now',
-    redirect: (context, state) {
-      // In test phase: bypass all auth screens and always go directly to main app
-      if (state.matchedLocation.startsWith('/auth')) {
-        return '/listen-now';
-      }
-      return null;
-    },
     routes: [
-      GoRoute(
-        path: '/auth/sign-in',
-        builder: (context, state) => const SignInScreen(),
-      ),
-      GoRoute(
-        path: '/auth/sign-up',
-        builder: (context, state) => const SignUpScreen(),
-      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AdaptiveShell(navigationShell: navigationShell);
@@ -121,6 +104,59 @@ class MelodiaApp extends ConsumerWidget {
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(
                 MelodiaTokens.dark.accent,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (session.error != null) {
+      return MaterialApp(
+        title: 'Melodia',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        home: Scaffold(
+          backgroundColor: MelodiaTokens.dark.background,
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: MelodiaTokens.dark.accent,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Authentication Error',
+                    style: TextStyle(
+                      color: MelodiaTokens.dark.text,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    session.error!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: MelodiaTokens.dark.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: () {
+                      ref.invalidate(sessionProvider);
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
             ),
           ),

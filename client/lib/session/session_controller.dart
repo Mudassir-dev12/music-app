@@ -7,6 +7,7 @@ import '../api/api_client.dart';
 import '../api/auth_api.dart';
 import '../api/errors.dart';
 import '../api/models.dart';
+import 'auth_strategy.dart';
 import 'token_store.dart';
 
 // ---------------------------------------------------------------------------
@@ -65,26 +66,11 @@ final isSignedInProvider = Provider<bool>((ref) {
 // ---------------------------------------------------------------------------
 
 /// Riverpod [Notifier] that manages the authenticated session lifecycle.
-///
-/// On construction it attempts to restore a session from the stored refresh
-/// token (showing [SessionState.isLoading] = true during the attempt).
 class SessionController extends Notifier<SessionState> {
-  static final _kTestUser = UserOut(
-    id: '8557305a-ab68-4f44-a971-38ffff6aa150',
-    email: 'test@example.com',
-    displayName: 'Test User',
-    createdAt: DateTime(2026, 1, 1),
-  );
-
   @override
   SessionState build() {
-    // In test phase: start with the test user immediately (no loading screen)
-    _restoreSession();
-    return SessionState(
-      user: _kTestUser,
-      accessToken: 'test-token',
-      isLoading: false,
-    );
+    Future.microtask(() => _initSession());
+    return const SessionState(isLoading: true);
   }
 
   AuthApi get _auth => ref.read(authApiProvider);
@@ -92,24 +78,26 @@ class SessionController extends Notifier<SessionState> {
   ApiClient get _client => ref.read(apiClientProvider);
 
   // ---------------------------------------------------------------------------
-  // Session restore
+  // Session initialization
   // ---------------------------------------------------------------------------
 
-  Future<void> _restoreSession() async {
-    // Test mode: silent background sign-in to get fresh JWT tokens for backend API
+  Future<void> _initSession() async {
     try {
-      final pair = await _auth.signIn('test@example.com', 'Password12345!');
-      await _store.saveRefreshToken(pair.refreshToken);
-      _wireApiClient(pair.accessToken);
-      state = SessionState(
-        user: pair.user,
-        accessToken: pair.accessToken,
-        isLoading: false,
-      );
-    } catch (_) {
-      // Fallback: keep preconfigured test session
-      _wireApiClient(state.accessToken);
+      final strategy = ref.read(authStrategyProvider);
+      await strategy.ensureSignedIn();
+    } catch (e) {
+      state = SessionState(isLoading: false, error: e.toString());
     }
+  }
+
+  /// Sets an active authenticated session with user profile and access token.
+  void setAuthenticatedSession(UserOut user, String accessToken) {
+    _wireApiClient(accessToken);
+    state = SessionState(
+      user: user,
+      accessToken: accessToken,
+      isLoading: false,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -122,12 +110,7 @@ class SessionController extends Notifier<SessionState> {
     try {
       final pair = await _auth.signIn(email, password);
       await _store.saveRefreshToken(pair.refreshToken);
-      _wireApiClient(pair.accessToken);
-      state = SessionState(
-        user: pair.user,
-        accessToken: pair.accessToken,
-        isLoading: false,
-      );
+      setAuthenticatedSession(pair.user, pair.accessToken);
     } on ApiError catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
       rethrow;
@@ -153,12 +136,7 @@ class SessionController extends Notifier<SessionState> {
         inviteCode: inviteCode,
       );
       await _store.saveRefreshToken(pair.refreshToken);
-      _wireApiClient(pair.accessToken);
-      state = SessionState(
-        user: pair.user,
-        accessToken: pair.accessToken,
-        isLoading: false,
-      );
+      setAuthenticatedSession(pair.user, pair.accessToken);
     } on ApiError catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
       rethrow;
@@ -179,12 +157,8 @@ class SessionController extends Notifier<SessionState> {
       }
     }
     await _store.clearRefreshToken();
-    // In test phase: reset to active test user session
-    state = SessionState(
-      user: _kTestUser,
-      accessToken: 'test-token',
-      isLoading: false,
-    );
+    _client.clearAccessToken();
+    state = const SessionState(isLoading: false);
   }
 
   // ---------------------------------------------------------------------------
@@ -207,7 +181,6 @@ class SessionController extends Notifier<SessionState> {
         final pair = await _auth.refresh(stored);
         await _store.saveRefreshToken(pair.refreshToken);
         _client.setAccessToken(pair.accessToken);
-        // Update state silently (no loading flicker).
         state = state.copyWith(
           accessToken: pair.accessToken,
           user: pair.user,
