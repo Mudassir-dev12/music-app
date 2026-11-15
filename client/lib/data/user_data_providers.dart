@@ -100,6 +100,10 @@ class PlaylistsNotifier extends AsyncNotifier<List<Playlist>> {
     }
   }
 
+  Future<void> renamePlaylist(String id, String name) async {
+    await updatePlaylist(id, name: name);
+  }
+
   Future<void> updatePlaylist(String id, {String? name, String? description}) async {
     final current = state.valueOrNull ?? <Playlist>[];
     final optimistic = current.map((p) {

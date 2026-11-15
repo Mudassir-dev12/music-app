@@ -9,12 +9,14 @@ import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'theme/tokens.dart';
 import 'ui/screens/browse_screen.dart';
+import 'ui/screens/history_screen.dart';
 import 'ui/screens/library_screen.dart';
 import 'ui/screens/listen_now_screen.dart';
 import 'ui/screens/now_playing_screen.dart';
 import 'ui/screens/playlist_screen.dart';
 import 'ui/screens/queue_panel_screen.dart';
 import 'ui/screens/search_screen.dart';
+import 'ui/screens/settings_screen.dart';
 import 'ui/shell/adaptive_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -85,6 +87,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => PlaylistScreen(
           playlistId: state.pathParameters['id']!,
         ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/history',
+        builder: (context, state) => const HistoryScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
       ),
     ],
   );

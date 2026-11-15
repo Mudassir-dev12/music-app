@@ -17,6 +17,7 @@ class TrackRow extends ConsumerWidget {
     this.onPlayNext,
     this.onAddToQueue,
     this.onRemoveFromPlaylist,
+    this.trailing,
   });
 
   final Track track;
@@ -27,6 +28,7 @@ class TrackRow extends ConsumerWidget {
   final ValueChanged<Track>? onPlayNext;
   final ValueChanged<Track>? onAddToQueue;
   final VoidCallback? onRemoveFromPlaylist;
+  final Widget? trailing;
 
   String _formatDuration(int? seconds) {
     if (seconds == null || seconds <= 0) return '';
@@ -126,28 +128,32 @@ class TrackRow extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        if (isCurrentTrack && isPlaying)
-                          _EqualizerBars(tokens: tokens)
-                        else
-                          Text(
-                            _formatDuration(track.durationSeconds),
-                            style: MelodiaTokens.footnote.copyWith(
-                              color: tokens.textTertiary,
+                        if (trailing != null)
+                          trailing!
+                        else ...[
+                          if (isCurrentTrack && isPlaying)
+                            _EqualizerBars(tokens: tokens)
+                          else
+                            Text(
+                              _formatDuration(track.durationSeconds),
+                              style: MelodiaTokens.footnote.copyWith(
+                                color: tokens.textTertiary,
+                              ),
+                            ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.more_horiz_rounded,
+                              color: tokens.textSecondary,
+                              size: 20,
+                            ),
+                            onPressed: () => showTrackMoreMenu(
+                              context: context,
+                              ref: ref,
+                              track: track,
+                              onRemoveFromPlaylist: onRemoveFromPlaylist,
                             ),
                           ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.more_horiz_rounded,
-                            color: tokens.textSecondary,
-                            size: 20,
-                          ),
-                          onPressed: () => showTrackMoreMenu(
-                            context: context,
-                            ref: ref,
-                            track: track,
-                            onRemoveFromPlaylist: onRemoveFromPlaylist,
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
