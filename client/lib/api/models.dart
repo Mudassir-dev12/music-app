@@ -11,7 +11,7 @@ class Artist {
 
   factory Artist.fromJson(Map<String, dynamic> json) => Artist(
         id: json['id'] as String?,
-        name: json['name'] as String,
+        name: (json['name'] as String?) ?? 'Unknown Artist',
       );
 
   Map<String, dynamic> toJson() => {
@@ -45,12 +45,13 @@ class Track {
   final bool isExplicit;
 
   factory Track.fromJson(Map<String, dynamic> json) => Track(
-        videoId: json['video_id'] as String,
-        title: json['title'] as String,
-        artists: (json['artists'] as List<dynamic>)
-            .map((a) => Artist.fromJson(a as Map<String, dynamic>))
-            .toList(),
-        artist: json['artist'] as String,
+        videoId: (json['video_id'] as String?) ?? '',
+        title: (json['title'] as String?) ?? '',
+        artists: (json['artists'] as List<dynamic>?)
+                ?.map((a) => Artist.fromJson(a as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        artist: (json['artist'] as String?) ?? '',
         album: json['album'] as String?,
         albumId: json['album_id'] as String?,
         durationSeconds: json['duration_seconds'] as int?,
@@ -84,11 +85,12 @@ class SearchResponse {
   final List<Track> results;
 
   factory SearchResponse.fromJson(Map<String, dynamic> json) => SearchResponse(
-        query: json['query'] as String,
-        filter: json['filter'] as String,
-        results: (json['results'] as List<dynamic>)
-            .map((t) => Track.fromJson(t as Map<String, dynamic>))
-            .toList(),
+        query: (json['query'] as String?) ?? '',
+        filter: (json['filter'] as String?) ?? 'songs',
+        results: (json['results'] as List<dynamic>?)
+                ?.map((t) => Track.fromJson(t as Map<String, dynamic>))
+                .toList() ??
+            const [],
       );
 }
 

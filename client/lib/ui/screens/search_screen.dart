@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../api/errors.dart';
 import '../../api/models.dart';
 import '../../api/music_api.dart';
 import '../../player/player_controller.dart';
@@ -109,7 +110,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = e.toString();
+          _errorMessage = e is ApiError ? e.message : e.toString();
         });
       }
     }
