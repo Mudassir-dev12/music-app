@@ -7,6 +7,7 @@ import '../../player/player_controller.dart';
 import '../../player/player_state.dart';
 import '../../player/queue.dart';
 import '../../theme/tokens.dart';
+import '../widgets/like_button.dart';
 import '../widgets/scrub_bar.dart';
 import '../widgets/volume_slider.dart';
 
@@ -115,6 +116,8 @@ class DesktopPlayerBar extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(width: MelodiaTokens.spacingSm),
+          LikeHeartButton(track: currentTrack, size: 20),
 
           // Center: Controls + Scrubber
           Expanded(

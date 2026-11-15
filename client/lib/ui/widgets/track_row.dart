@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/models.dart';
 import '../../theme/tokens.dart';
+import 'track_more_menu.dart';
 
-class TrackRow extends StatelessWidget {
+class TrackRow extends ConsumerWidget {
   const TrackRow({
     super.key,
     required this.track,
@@ -14,6 +16,7 @@ class TrackRow extends StatelessWidget {
     this.onTap,
     this.onPlayNext,
     this.onAddToQueue,
+    this.onRemoveFromPlaylist,
   });
 
   final Track track;
@@ -23,6 +26,7 @@ class TrackRow extends StatelessWidget {
   final VoidCallback? onTap;
   final ValueChanged<Track>? onPlayNext;
   final ValueChanged<Track>? onAddToQueue;
+  final VoidCallback? onRemoveFromPlaylist;
 
   String _formatDuration(int? seconds) {
     if (seconds == null || seconds <= 0) return '';
@@ -31,52 +35,8 @@ class TrackRow extends StatelessWidget {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
-  void _showMoreMenu(BuildContext context, MelodiaTokens tokens) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: tokens.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(MelodiaTokens.radiusSheet),
-        ),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: MelodiaTokens.spacingMd),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.playlist_play_rounded, color: tokens.accent),
-                title: Text(
-                  'Play Next',
-                  style: MelodiaTokens.body.copyWith(color: tokens.text),
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  onPlayNext?.call(track);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.queue_music_rounded, color: tokens.accent),
-                title: Text(
-                  'Add to Queue',
-                  style: MelodiaTokens.body.copyWith(color: tokens.text),
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  onAddToQueue?.call(track);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<MelodiaTokens>()!;
 
     return Semantics(
@@ -97,7 +57,8 @@ class TrackRow extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        if (track.thumbnail != null && track.thumbnail!.isNotEmpty)
+                        if (track.thumbnail != null &&
+                            track.thumbnail!.isNotEmpty)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(
                               MelodiaTokens.radiusArtworkSm,
@@ -180,7 +141,12 @@ class TrackRow extends StatelessWidget {
                             color: tokens.textSecondary,
                             size: 20,
                           ),
-                          onPressed: () => _showMoreMenu(context, tokens),
+                          onPressed: () => showTrackMoreMenu(
+                            context: context,
+                            ref: ref,
+                            track: track,
+                            onRemoveFromPlaylist: onRemoveFromPlaylist,
+                          ),
                         ),
                       ],
                     ),
@@ -213,7 +179,7 @@ class _EqualizerBars extends StatefulWidget {
 
 class _EqualizerBarsState extends State<_EqualizerBars>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _anim;
+  late AnimationController _anim;
 
   @override
   void initState() {
@@ -234,33 +200,32 @@ class _EqualizerBarsState extends State<_EqualizerBars>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _anim,
-      builder: (_, __) {
-        final val = _anim.value;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              width: 3,
-              height: 4 + (val * 12),
-              color: widget.tokens.accent,
-            ),
-            const SizedBox(width: 2),
-            Container(
-              width: 3,
-              height: 14 - (val * 10),
-              color: widget.tokens.accent,
-            ),
-            const SizedBox(width: 2),
-            Container(
-              width: 3,
-              height: 6 + (val * 8),
-              color: widget.tokens.accent,
-            ),
-          ],
+      builder: (context, _) {
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _bar(0.4 + 0.6 * _anim.value),
+              _bar(1.0 - 0.7 * _anim.value),
+              _bar(0.2 + 0.8 * _anim.value),
+            ],
+          ),
         );
       },
     );
   }
-}
 
+  Widget _bar(double fraction) {
+    return Container(
+      width: 3,
+      height: (16 * fraction).clamp(3.0, 16.0),
+      decoration: BoxDecoration(
+        color: widget.tokens.accent,
+        borderRadius: BorderRadius.circular(1),
+      ),
+    );
+  }
+}

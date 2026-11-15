@@ -10,8 +10,10 @@ import '../../player/player_controller.dart';
 import '../../player/player_state.dart';
 import '../../player/queue.dart';
 import '../../theme/tokens.dart';
+import '../widgets/like_button.dart';
 import '../widgets/marquee_text.dart';
 import '../widgets/scrub_bar.dart';
+import '../widgets/track_more_menu.dart';
 import '../widgets/volume_slider.dart';
 
 class NowPlayingScreen extends ConsumerStatefulWidget {
@@ -55,53 +57,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
     super.dispose();
   }
 
-  void _showMoreMenu(BuildContext context, MelodiaTokens tokens) {
-    showModalBottomSheet<void>(
+  void _showMoreMenu(BuildContext context, Track currentTrack) {
+    showTrackMoreMenu(
       context: context,
-      backgroundColor: tokens.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(MelodiaTokens.radiusSheet),
-        ),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: MelodiaTokens.spacingMd),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.playlist_add_rounded, color: tokens.textSecondary),
-                title: Text(
-                  'Add to Playlist (Coming soon)',
-                  style: MelodiaTokens.body.copyWith(color: tokens.textSecondary),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.favorite_border_rounded, color: tokens.textSecondary),
-                title: Text(
-                  'Favorite (Coming soon)',
-                  style: MelodiaTokens.body.copyWith(color: tokens.textSecondary),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.download_rounded, color: tokens.textSecondary),
-                title: Text(
-                  'Download (Coming in Phase 5)',
-                  style: MelodiaTokens.body.copyWith(color: tokens.textSecondary),
-                ),
-              ),
-              ListTile(
-                leading: Icon(Icons.person_rounded, color: tokens.textSecondary),
-                title: Text(
-                  'Go to Artist (Coming in Phase 4)',
-                  style: MelodiaTokens.body.copyWith(color: tokens.textSecondary),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      ref: ref,
+      track: currentTrack,
     );
   }
 
@@ -237,7 +197,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                                 color: tokens.text,
                                 size: 24,
                               ),
-                              onPressed: () => _showMoreMenu(context, tokens),
+                              onPressed: () => _showMoreMenu(context, currentTrack),
                             ),
                           ],
                         ),
@@ -306,6 +266,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                                 ],
                               ),
                             ),
+                            LikeHeartButton(track: currentTrack, size: 28),
                           ],
                         ),
 
@@ -479,19 +440,30 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                   ),
                 ),
                 const SizedBox(height: MelodiaTokens.spacingXl),
-                Text(
-                  currentTrack.title,
-                  style: MelodiaTokens.title2.copyWith(
-                    color: tokens.text,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  currentTrack.artist,
-                  style: MelodiaTokens.headline.copyWith(
-                    color: tokens.accent,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Column(
+                      children: [
+                        Text(
+                          currentTrack.title,
+                          style: MelodiaTokens.title2.copyWith(
+                            color: tokens.text,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          currentTrack.artist,
+                          style: MelodiaTokens.headline.copyWith(
+                            color: tokens.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: MelodiaTokens.spacingSm),
+                    LikeHeartButton(track: currentTrack, size: 28),
+                  ],
                 ),
                 const SizedBox(height: MelodiaTokens.spacingLg),
                 SizedBox(
