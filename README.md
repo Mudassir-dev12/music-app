@@ -1,77 +1,153 @@
 # Melodia — Self-Hosted Music App (Phase 2)
 
-> **CRITICAL ENVIRONMENT NOTICE:** This project lives strictly inside `/var/www/music-app`. All development, virtualenvs, Node packages, caches (`.home/`, `.cache/`, `.config/`, `.local/`, `.tmp/`), SQLite data (`data/`), and backups (`backups/`) must remain inside `/var/www/music-app`. Always `source scripts/env.sh` before running any command. Never touch sibling `/var/www/*` directories or host system services.
+> **Windows development notice:** This project is developed on Windows. The Flutter client is in `client/`. The FastAPI backend is in `backend/`. Use `python` (not `python3`) on Windows.
 
 ---
 
 ## Overview
 
-Melodia is a self-hosted music streaming application running entirely on our own VPS (no Supabase or external backend-as-a-service).
+Melodia is a self-hosted music streaming application running entirely on our own server (no Supabase or external backend-as-a-service).
 - **Phase 1:** FastAPI backend (`backend/`), SQLite + Alembic, Argon2id accounts, HS256 JWT + rotating SHA-256 refresh tokens, `ytmusicapi` search/track metadata behind `MusicSource`, `yt-dlp` + `httpx` Range audio proxy, Redis/memory cache, per-user rate limit, bandwidth guard, and online SQLite backup CLI.
-- **Phase 2:** Signed short-lived audio tickets (`POST /audio/{video_id}/ticket`), Apple Music-style design system (`src/theme/tokens.ts`), responsive phone/tablet tab bar + Mini Player and desktop sidebar + PlayerBar, full Now Playing + Queue panel, web (`HTMLAudioElement` + Media Session + keyboard shortcuts) and native (`expo-audio` + lock-screen controls) player engines, single-flight token refresh, minimal sign-in/sign-up, functional Search tab, and Listen Now Recently Played + theme selector.
+- **Phase 2:** Signed short-lived audio tickets (`POST /audio/{video_id}/ticket`), Flutter client (`client/`) with Apple Music-style design system, Riverpod state management, go_router navigation, just_audio + audio_service player, responsive phone/tablet/desktop layouts, full Now Playing + Queue panel, and theme selector.
 
 ---
 
 ## Requirements
 
-- **Node.js** >= 20 (project-local Node `v22.23.5` is installed under `.local/node/bin`, automatically added to `PATH` by `scripts/env.sh`, satisfying both `yt-dlp` EJS `>= 22.0.0` and Expo SDK 58 `>= 22.13.0`)
-- **Python** >= 3.11 (verified with Python 3.12.3)
-- **SQLite** >= 3.35 (verified with SQLite 3.45.1)
+- **Flutter** >= 3.47.9 / Dart >= 3.13.7 (stable channel)
+- **Python** >= 3.11 (Windows: use `python`, not `python3`)
+- **SQLite** >= 3.35
 - **git**
+- Android SDK for Android builds (Android emulator or USB device)
+- Xcode on macOS for iOS builds
 
 ---
 
 ## Quick start
 
-Always start by sourcing the environment guard from `/var/www/music-app`:
-
-```bash
-cd /var/www/music-app
-source scripts/env.sh
-```
-
 ### 1. Backend setup, migration, and run
 
-```bash
-# Virtualenv (already created at backend/.venv)
-python3 -m venv backend/.venv
-backend/.venv/bin/pip install -r backend/requirements.txt
+```powershell
+# Windows: create virtualenv and install deps
+python -m venv backend\.venv
+backend\.venv\Scripts\pip install -r backend\requirements.txt
 
 # Configure backend/.env from backend/.env.example (set APP_JWT_SECRET >= 32 chars)
-cp backend/.env.example backend/.env
+copy backend\.env.example backend\.env
 
-# Apply database migrations (from backend/ or with PYTHONPATH=backend)
+# Apply database migrations
 cd backend
-.venv/bin/python -m alembic upgrade head
+.venv\Scripts\python -m alembic upgrade head
 
 # Start the API (single worker, 127.0.0.1 only)
-.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8610
+.venv\Scripts\uvicorn app.main:app --host 127.0.0.1 --port 8610
 ```
 
 ### 2. Backend automated tests & smoke script
 
-```bash
-cd /var/www/music-app
-source scripts/env.sh
-
-# Unit & integration tests (offline, mocked YouTube/HTTP, throwaway SQLite)
-cd backend && .venv/bin/pytest -q
-
-# Live smoke test (uses throwaway DB in .tmp/ and a free port)
-cd /var/www/music-app && bash scripts/smoke.sh
+```powershell
+cd backend
+.venv\Scripts\pytest -q
 ```
 
-### 3. Client (Expo Router + TypeScript + Web)
+### 3. Flutter Client
+
+```powershell
+cd client
+
+# Fetch dependencies
+flutter pub get
+
+# Run on Windows desktop
+flutter run -d windows
+
+# Run on Android emulator (make sure one is running)
+flutter run
+
+# Run as web (Chrome required; not available on all machines)
+# flutter run -d chrome --web-port 8611
+```
+
+---
+
+## Flutter Client
+
+The Flutter client lives in `client/`. It targets **Android, iOS, and Web**.
+
+### Running locally
+
+| Command | Notes |
+|---|---|
+| `flutter run -d windows` | Windows desktop app (always available on Windows dev machines) |
+| `flutter run` | Android emulator / USB device |
+| `flutter run -d chrome --web-port 8611` | Web (requires Chrome to be installed) |
+| `flutter analyze` | Static analysis (from `client/`) |
+| `flutter test` | Unit & widget tests |
+
+> **Note:** Chrome is not available on all development machines. Use `-d windows` for quick iteration. Web builds are possible via `flutter build web`.
+
+### Build commands
 
 ```bash
-cd /var/www/music-app
-source scripts/env.sh
-cd app
-cp .env.example .env
-npm test               # Jest + React Native Testing Library (mocked engines/network)
-npx expo lint          # ESLint (expo flat config + React Compiler rules)
-npx tsc --noEmit       # Strict TypeScript check
-npx expo export --platform web
+# Release web build
+flutter build web --release \
+  --dart-define=API_URL=http://your-server:8610 \
+  --dart-define=APP_NAME=Melodia \
+  --no-web-resources-cdn
+
+# Debug APK
+flutter build apk --debug
+
+# Release APK
+flutter build apk --release \
+  --dart-define=API_URL=http://your-server:8610 \
+  --dart-define=APP_NAME=Melodia
+```
+
+### `--dart-define` options
+
+| Define | Default (web) | Default (non-web) | Description |
+|---|---|---|---|
+| `API_URL` | `http://127.0.0.1:8610` | `http://10.0.2.2:8610` | Backend API base URL |
+| `APP_NAME` | `Melodia` | `Melodia` | Application display name |
+
+> **Note:** `10.0.2.2` is the Android emulator loopback to the host machine. For physical devices or production, replace with the actual server address.
+
+### Application ID
+
+The application ID is currently `app.melodia`. **Change this to your own reverse-domain ID before publishing to app stores** (edit `client/android/app/build.gradle` and `client/ios/Runner.xcodeproj`).
+
+### CORS
+
+The backend `CORS_ORIGINS` must include the Flutter web dev port:
+
+```
+CORS_ORIGINS=http://localhost:8611,http://127.0.0.1:8611
+```
+
+For production, replace with your actual domain(s).
+
+### Project structure
+
+```
+client/
+  lib/
+    core/
+      config.dart          # API URL & app name from --dart-define
+      result.dart          # Result<T> sealed class
+      platform/
+        media_session.dart       # Conditional import entry point
+        media_session_stub.dart  # No-op for Android/iOS/Windows
+        media_session_web.dart   # Web MediaSession API via package:web
+    theme/
+      tokens.dart          # MelodiaTokens ThemeExtension (colours, type, spacing)
+      app_theme.dart       # ThemeData for dark + light modes
+      theme_controller.dart # Riverpod Notifier, persists to SharedPreferences
+    main.dart              # Entrypoint — ProviderScope + MelodiaApp
+    app.dart               # Root MaterialApp (placeholder, expanded in later steps)
+  tool/
+    check_platform_imports.sh  # CI: reject dart:io/dart:html outside platform/
+    check_literals.sh          # CI: reject raw Color/Colors/fontSize in lib/ui/
 ```
 
 ---
@@ -114,18 +190,11 @@ npx expo export --platform web
 | `SEARCH_TTL` | `900` | Cached search results TTL in seconds |
 | `META_TTL` | `86400` | Cached track metadata TTL in seconds |
 
-### Frontend (`app/.env`, see `app/.env.example`)
-
-| Variable | Default | Description |
-|---|---|---|
-| `EXPO_PUBLIC_API_URL` | `http://127.0.0.1:8610` | Backend API base URL |
-| `EXPO_PUBLIC_APP_NAME` | `Melodia` | Application display name |
-
 ---
 
 ## Architecture
 
-The Expo client communicates with the FastAPI backend over HTTPS/HTTP (`Authorization: Bearer <access_token>` and `Range` headers for audio seeking). The FastAPI app handles request-ID tagging and structured logging (redacting secrets), authenticates JWT access tokens via `get_current_user`, enforces per-user fixed-window rate limits, serves metadata/search via `YTMusicSource` (cached in Redis or memory), and proxies audio bytes from upstream streams resolved by `yt-dlp` through a single-flight coordinator and concurrency semaphore while metering streamed bytes in memory and flushing them periodically to SQLite.
+The Flutter client communicates with the FastAPI backend over HTTPS/HTTP (`Authorization: Bearer <access_token>` and `Range` headers for audio seeking). The FastAPI app handles request-ID tagging and structured logging, authenticates JWT access tokens via `get_current_user`, enforces per-user fixed-window rate limits, serves metadata/search via `YTMusicSource` (cached in Redis or memory), and proxies audio bytes from upstream streams resolved by `yt-dlp` through a single-flight coordinator and concurrency semaphore while metering streamed bytes in memory and flushing them periodically to SQLite.
 
 **Request flow:**
 1. `Client` -> `RequestLoggingMiddleware` (assigns `X-Request-ID`, logs route/status/latency/hashed user ID)
@@ -135,11 +204,13 @@ The Expo client communicates with the FastAPI backend over HTTPS/HTTP (`Authoriz
 5. `/audio/{video_id}/ticket` -> `get_current_user` -> `rate_limiter` -> issues short-lived (`AUDIO_TICKET_TTL_SECONDS`) `HS256` JWT scoped to `sub`, `vid`, `typ="audio"`.
 6. `/audio/{video_id}` (`GET`/`HEAD`) -> accepts Bearer access token OR `?t=<ticket>` -> `rate_limiter` -> `validate_video_id` -> `bandwidth_guard.check_limits` -> `MAX_CONCURRENT_STREAMS` semaphore -> `StreamResolver.get_stream` (single-flight + `yt-dlp`) -> `httpx` streaming proxy (`200`/`206`, `Referrer-Policy: no-referrer`, `403/404/410` single re-resolve retry) -> record sent bytes in `finally`.
 
-### Client Design System & Player Architecture
+### Flutter Client Design System & Player Architecture
 
-- **Design system (`app/src/theme/`):** Typed light and dark tokens (`tokens.ts`), `ThemeProvider` (`system | light | dark` persisted locally) honoring system Reduce Motion, and responsive breakpoints via `useLayout()` (`phone < 768`, `tablet 768–1023`, `desktop >= 1024`).
-- **Audio ticket flow & web refresh token trade-off:** Browsers cannot attach `Authorization` headers to `<audio src>` requests. The client calls `POST /audio/{video_id}/ticket` with its Bearer access token (kept in memory) and plays `/audio/{video_id}?t=<ticket>`, caching tickets until 5 minutes before expiry and warming up the next track via `HEAD` at 50% progress. On native, the refresh token is stored in `expo-secure-store`; on web, it is stored in `localStorage` as the simplest SPA trade-off (requires strict XSS hygiene; moving it to an `HttpOnly` cookie is a future backend enhancement).
-- **Player (`app/src/player/` & `app/src/store/player.ts`):** Pure queue state machine (`queue.ts`) with `playNext` override queue, Fisher-Yates shuffle preserving the active track and restoring original order, `off | all | one` repeat, and debounced AsyncStorage persistence (restoring paused). Platform engines share `PlayerEngine` (`player.web.ts` with HTML5 Audio + Media Session + keyboard shortcuts; `player.native.ts` using `expo-audio` with background mode + lock-screen controls).
+- **Design system (`client/lib/theme/`):** Typed light and dark tokens (`tokens.dart` as `MelodiaTokens` ThemeExtension), `AppTheme` with Material 3 dark/light ThemeData, `ThemeController` (Riverpod AsyncNotifier, persisted to SharedPreferences; `system | light | dark`), and responsive breakpoints (`phone < 768`, `tablet 768–1023`, `desktop >= 1024`).
+- **Audio ticket flow:** Browsers cannot attach `Authorization` headers to `<audio src>` requests. The client calls `POST /audio/{video_id}/ticket` with its Bearer access token (kept in memory) and plays `/audio/{video_id}?t=<ticket>`, caching tickets until 5 minutes before expiry.
+- **Refresh Token Storage Trade-off (Web):** On web platforms, `flutter_secure_storage` falls back to browser storage (localStorage). This is acceptable for a first version, provided strict XSS prevention and sanitization are maintained. In a future production iteration, an `httpOnly` secure cookie for the refresh token would provide defense-in-depth against client-side script inspection.
+- **Player:** `just_audio` + `audio_service` for cross-platform playback with lock-screen controls. Web MediaSession API access via conditional imports (`lib/core/platform/`).
+- **State management:** Riverpod providers throughout; `Result<T>` sealed class for typed error handling.
 
 ---
 
@@ -152,58 +223,48 @@ Audio extraction from YouTube is intended strictly for private/educational use a
 ## Operating notes
 
 - **Single uvicorn worker:** Because the in-memory cache, `HASH_CONCURRENCY` semaphore, `MAX_CONCURRENT_STREAMS` semaphore, single-flight map, and in-memory bandwidth counters are per-process, **always run a single uvicorn worker** (`--workers 1`).
-- **Bandwidth guard:** The VPS shares a 5 TB/month transfer quota across multiple projects. `MONTHLY_AUDIO_GB_GLOBAL` defaults to `1500` GB (~30%). Streamed bytes are accumulated in memory and flushed to `audio_usage` every 15 seconds and on clean shutdown. A warning is logged once global usage crosses 80% of the monthly cap.
-- **Backups:** Run `cd /var/www/music-app && source scripts/env.sh && backend/.venv/bin/python -m app.tools.backup` to create a consistent online SQLite snapshot under `./backups/music-YYYYmmdd-HHMMSS.db` (mode `600`), pruning to the newest 7 snapshots by default (`--keep N`).
-- **Moving to Postgres later:** Database access uses SQLAlchemy 2.x async and Alembic (`render_as_batch=True`). Update `DATABASE_URL` to a `postgresql+asyncpg://...` URL, install `asyncpg` in `backend/.venv`, and run `alembic upgrade head` (note: update `audio_usage` upsert SQL in `services/usage.py` if dialect-specific adjustments are desired, though `ON CONFLICT (user_id, day) DO UPDATE` is standard SQLite/PostgreSQL syntax).
+- **Bandwidth guard:** `MONTHLY_AUDIO_GB_GLOBAL` defaults to `1500` GB (~30%). Streamed bytes are accumulated in memory and flushed to `audio_usage` every 15 seconds and on clean shutdown. A warning is logged once global usage crosses 80% of the monthly cap.
+- **Backups:** Run `python -m app.tools.backup` from `backend/` (with `.venv` activated) to create a consistent online SQLite snapshot under `./backups/music-YYYYmmdd-HHMMSS.db` (mode `600`), pruning to the newest 7 snapshots by default (`--keep N`).
+- **Moving to Postgres later:** Database access uses SQLAlchemy 2.x async and Alembic (`render_as_batch=True`). Update `DATABASE_URL` to a `postgresql+asyncpg://...` URL and run `alembic upgrade head`.
 
 ---
 
 ## Manual steps for the owner
 
 1. **Generate `APP_JWT_SECRET`:**
-   ```bash
-   python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+   ```powershell
+   python -c "import secrets; print(secrets.token_urlsafe(48))"
    ```
 2. **Create `backend/.env` and choose an invite code:**
-   ```bash
-   cp /var/www/music-app/backend/.env.example /var/www/music-app/backend/.env
+   ```powershell
+   copy backend\.env.example backend\.env
    # Edit backend/.env: set APP_JWT_SECRET, REGISTRATION_INVITE_CODE, and CORS_ORIGINS
-   chmod 600 /var/www/music-app/backend/.env
    ```
 3. **Run Alembic migrations on the real database:**
-   ```bash
-   cd /var/www/music-app && source scripts/env.sh
-   cd backend && .venv/bin/python -m alembic upgrade head
+   ```powershell
+   cd backend
+   .venv\Scripts\python -m alembic upgrade head
    ```
-4. **Schedule daily SQLite backups via cron (do not edit system crontabs inside the project):**
-   Add this line to the owner's crontab (`crontab -e`):
-   ```cron
-   15 3 * * * cd /var/www/music-app && . scripts/env.sh && backend/.venv/bin/python -m app.tools.backup
+4. **Schedule daily SQLite backups (Windows Task Scheduler or cron on Linux):**
+   ```powershell
+   # Example: add to Windows Task Scheduler or run manually
+   cd backend && .venv\Scripts\python -m app.tools.backup
    ```
 5. **Configure reverse proxy (Nginx) and TLS:**
    Proxy your domain over HTTPS to `http://127.0.0.1:8610`, pass `X-Forwarded-For` / `X-Real-IP` (and set `TRUST_FORWARDED_FOR=true` in `backend/.env` if proxied), and disable response buffering (`proxy_buffering off;`) for `/audio/`.
 6. **Confirm port `8610` is not reachable from outside:**
-   Verify `ss -tlnp | grep 8610` shows `127.0.0.1:8610` only (not `0.0.0.0:8610`) and firewall (`ufw status`) blocks direct external access to `8610`.
+   Verify that only `127.0.0.1:8610` is bound and that your firewall blocks direct external access to port `8610`.
 7. **YouTube `yt-dlp` datacenter IP notice:**
-   Project-local `.local/node` is `v22.23.5` (supported by `yt-dlp` `EJS`). However, YouTube may return `"Sign in to confirm you're not a bot"` or `403` on datacenter IPs. For private use if blocked by YouTube, consider routing `yt-dlp` through a residential egress/VPN or providing a cookies file outside git.
+   YouTube may return `"Sign in to confirm you're not a bot"` or `403` on datacenter IPs. For private use if blocked, consider routing `yt-dlp` through a residential egress/VPN or providing a cookies file outside git.
 8. **Export Figma frames for closer visual fidelity:**
    Export key Figma frames (`Listen Now`, `Browse`, `Library`, `Search`, `Now Playing`, `Mini Player`) as PNGs into `design-reference/` if you want future phases to refine pixel details against the Figma kit.
-9. **Create a native dev build on your own machine (iOS/Android background playback & lock-screen controls):**
-   Native builds cannot be produced on this Linux server (requires Xcode on macOS or Android SDK/Studio). On your workstation:
-   ```bash
-   cd app
-   npm install
-   npx expo prebuild
-   # iOS (macOS + Xcode):
-   npx expo run:ios
-   # Android (Android SDK / emulator or USB device):
-   npx expo run:android
+9. **Build Flutter for Android on a machine with Android SDK:**
+   ```powershell
+   cd client
+   flutter build apk --debug
+   # or for release:
+   flutter build apk --release --dart-define=API_URL=http://your-server:8610
    ```
-   Test background playback, lock-screen metadata, and remote Next/Previous/Play/Pause controls on a physical device.
-10. **Run Playwright visual & browser audio checks on a desktop/machine with Chromium libraries:**
-    Chromium system libraries (`libatk-1`, `libasound`) are missing on this shared headless VPS (and free RAM is ~600 MiB), so visual browser screenshots were skipped here per Phase 2 rules. On a machine with Chromium dependencies:
-    ```bash
-    cd /var/www/music-app && source scripts/env.sh
-    PLAYWRIGHT_BROWSERS_PATH=/var/www/music-app/.cache/ms-playwright npx playwright install chromium
-    # Serve app/dist + backend, verify 390x844 and 1440x900 layouts, audio currentTime, seeking, and Media Session
-    ```
+   Test background playback, lock-screen metadata, and remote controls on a physical device.
+10. **Change application ID before publishing:**
+    The bundle ID is currently `app.melodia`. Before publishing to Google Play or the App Store, update it to your own reverse-domain ID in `client/android/app/build.gradle` and `client/ios/Runner.xcodeproj/project.pbxproj`.

@@ -30,9 +30,10 @@ def test_backup_tool_execution(test_db_path, tmp_path, monkeypatch):
     assert row is not None
     conn.close()
 
-    # Verify mode 600
-    st = os.stat(backup_file)
-    assert oct(st.st_mode)[-3:] == "600"
+    # Verify mode 600 (POSIX only; Windows stat reports 666 for writable files)
+    if os.name != "nt":
+        st = os.stat(backup_file)
+        assert oct(st.st_mode)[-3:] == "600"
 
     # 2. Test keep N pruning with distinct historical backup files
     for idx in range(3):

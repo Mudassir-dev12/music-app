@@ -12,8 +12,7 @@
 .tmp/
 .npm-prefix/
 
-# Dependencies & Environments
-node_modules/
+# Python
 .venv/
 __pycache__/
 *.py[cod]
@@ -29,11 +28,45 @@ backups/
 *.sqlite
 *.sqlite3
 
-# Build & Dist
-dist/
-.expo/
-web-build/
-
 # Logs
 *.log
 logs/
+
+# Flutter / Dart
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+# pubspec.lock is committed for apps (not packages)
+
+# Flutter web build output
+client/web-build/
+client/.expo/
+
+# Android
+*.apk
+*.aab
+client/android/.gradle/
+client/android/local.properties
+client/android/key.properties
+
+# iOS
+client/ios/Pods/
+client/ios/.symlinks/
+client/ios/Flutter/Flutter.framework
+client/ios/Flutter/Flutter.podspec
+
+# macOS
+client/macos/Pods/
+client/macos/.symlinks/
+
+# Windows
+client/windows/flutter/generated_plugin_registrant.cc
+client/windows/flutter/generated_plugin_registrant.h
+client/windows/flutter/generated_plugins.cmake
+
+# IDE
+.idea/
+*.iml
+.vscode/settings.json
