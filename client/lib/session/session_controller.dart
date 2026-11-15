@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_client.dart';
 import '../api/auth_api.dart';
@@ -83,6 +84,7 @@ class SessionController extends Notifier<SessionState> {
 
   Future<void> _initSession() async {
     try {
+      await _client.loadCustomBaseUrl();
       final strategy = ref.read(authStrategyProvider);
       await strategy.ensureSignedIn();
     } catch (e) {
@@ -98,6 +100,33 @@ class SessionController extends Notifier<SessionState> {
       accessToken: accessToken,
       isLoading: false,
     );
+  }
+
+  /// Continues into the application with an offline guest session when the
+  /// server cannot be reached, allowing access to cached data and UI shell.
+  void continueOffline() {
+    state = SessionState(
+      user: UserOut(
+        id: 'offline_user',
+        email: 'offline@melodia.local',
+        displayName: 'Guest (Offline)',
+        createdAt: DateTime.now(),
+      ),
+      accessToken: 'offline_access_token',
+      isLoading: false,
+    );
+  }
+
+  /// Updates and persists the backend server URL in SharedPreferences.
+  Future<void> updateServerUrl(String newUrl) async {
+    final trimmed = newUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    if (trimmed.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_api_url', trimmed);
+    } catch (_) {}
+    _client.updateBaseUrl(trimmed);
+    ref.invalidate(sessionProvider);
   }
 
   // ---------------------------------------------------------------------------

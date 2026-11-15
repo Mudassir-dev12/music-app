@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/config.dart' as config;
 import 'player/history_outbox.dart';
 import 'player/shortcuts.dart';
 import 'session/session_controller.dart';
@@ -18,6 +19,7 @@ import 'ui/screens/queue_panel_screen.dart';
 import 'ui/screens/search_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/shell/adaptive_shell.dart';
+import 'ui/widgets/server_url_dialog.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -134,6 +136,12 @@ class MelodiaApp extends ConsumerWidget {
     }
 
     if (session.error != null) {
+      final err = session.error!;
+      final isNetwork = err.contains('NetworkError') ||
+          err.toLowerCase().contains('connection') ||
+          err.toLowerCase().contains('socket') ||
+          err.toLowerCase().contains('timeout');
+
       return MaterialApp(
         title: 'Melodia',
         debugShowCheckedModeBanner: false,
@@ -142,43 +150,96 @@ class MelodiaApp extends ConsumerWidget {
         themeMode: themeMode,
         home: Scaffold(
           backgroundColor: MelodiaTokens.dark.background,
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: MelodiaTokens.dark.accent,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Authentication Error',
-                    style: TextStyle(
-                      color: MelodiaTokens.dark.text,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    session.error!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: MelodiaTokens.dark.textSecondary,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: () {
-                      ref.invalidate(sessionProvider);
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: MelodiaTokens.spacingXl,
+                  vertical: MelodiaTokens.spacingLg,
+                ),
+                child: Builder(
+                  builder: (scaffoldContext) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isNetwork
+                              ? Icons.cloud_off_rounded
+                              : Icons.error_outline_rounded,
+                          size: 56,
+                          color: MelodiaTokens.dark.accent,
+                        ),
+                        const SizedBox(height: MelodiaTokens.spacingLg),
+                        Text(
+                          isNetwork
+                              ? 'Cannot Connect to Server'
+                              : 'Authentication Error',
+                          textAlign: TextAlign.center,
+                          style: MelodiaTokens.title3.copyWith(
+                            color: MelodiaTokens.dark.text,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: MelodiaTokens.spacingMd),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: MelodiaTokens.spacingMd,
+                            vertical: MelodiaTokens.spacingSm,
+                          ),
+                          decoration: BoxDecoration(
+                            color: MelodiaTokens.dark.surface,
+                            borderRadius: BorderRadius.circular(
+                              MelodiaTokens.radiusCard,
+                            ),
+                          ),
+                          child: Text(
+                            config.apiUrl,
+                            textAlign: TextAlign.center,
+                            style: MelodiaTokens.footnote.copyWith(
+                              color: MelodiaTokens.dark.textSecondary,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: MelodiaTokens.spacingMd),
+                        Text(
+                          isNetwork
+                              ? 'Your internet is working, but the app cannot connect to your Melodia music server.\n\nMake sure the backend is running on your computer:\npython -m uvicorn app.main:app --host 0.0.0.0 --port 8000'
+                              : session.error!,
+                          textAlign: TextAlign.center,
+                          style: MelodiaTokens.subhead.copyWith(
+                            color: MelodiaTokens.dark.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: MelodiaTokens.spacingXl),
+                        FilledButton.icon(
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Retry Connection'),
+                          onPressed: () {
+                            ref.invalidate(sessionProvider);
+                          },
+                        ),
+                        const SizedBox(height: MelodiaTokens.spacingSm),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Change Server URL'),
+                          onPressed: () {
+                            showServerUrlDialog(scaffoldContext, ref);
+                          },
+                        ),
+                        const SizedBox(height: MelodiaTokens.spacingSm),
+                        TextButton.icon(
+                          icon: const Icon(Icons.offline_bolt_outlined, size: 18),
+                          label: const Text('Continue in Offline Mode'),
+                          onPressed: () {
+                            ref.read(sessionProvider.notifier).continueOffline();
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),

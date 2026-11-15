@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/config.dart' as config;
 import 'errors.dart';
@@ -66,6 +67,23 @@ class ApiClient {
   // Callback set by SessionController so the interceptor can clear session on
   // permanent 401 (refresh failed).
   void Function()? onSessionExpired;
+
+  /// Updates the base URL for Dio and global config.
+  void updateBaseUrl(String newUrl) {
+    config.setApiUrl(newUrl);
+    _dio.options.baseUrl = newUrl;
+  }
+
+  /// Loads custom base URL persisted in SharedPreferences, if present.
+  Future<void> loadCustomBaseUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final customUrl = prefs.getString('custom_api_url');
+      if (customUrl != null && customUrl.isNotEmpty) {
+        updateBaseUrl(customUrl);
+      }
+    } catch (_) {}
+  }
 
   /// Updates the in-memory access token used for future requests.
   void setAccessToken(String token) => _accessToken = token;

@@ -7,6 +7,7 @@ import '../../core/config.dart' as config;
 import '../../data/user_data_providers.dart';
 import '../../theme/theme_controller.dart';
 import '../../theme/tokens.dart';
+import '../widgets/server_url_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -282,6 +283,12 @@ class SettingsScreen extends ConsumerWidget {
                         color: tokens.textSecondary,
                       ),
                     ),
+                    trailing: Icon(
+                      Icons.edit_outlined,
+                      color: tokens.textSecondary,
+                      size: 20,
+                    ),
+                    onTap: () => showServerUrlDialog(context, ref),
                   ),
                 ],
               ],

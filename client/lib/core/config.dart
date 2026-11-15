@@ -13,9 +13,15 @@ String get _kDefaultHost {
   return '192.168.0.104';
 }
 
-final String apiUrl = const String.fromEnvironment('API_URL').isNotEmpty
+String _configuredApiUrl = const String.fromEnvironment('API_URL').isNotEmpty
     ? const String.fromEnvironment('API_URL')
     : 'http://$_kDefaultHost:$_kDefaultPort';
+
+String get apiUrl => _configuredApiUrl;
+
+void setApiUrl(String newUrl) {
+  _configuredApiUrl = newUrl;
+}
 
 const appName = String.fromEnvironment('APP_NAME', defaultValue: 'Melodia');
 
