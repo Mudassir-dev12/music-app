@@ -200,8 +200,8 @@ client/
 | `STREAM_URL_TTL` | `3000` | Cached upstream stream URL TTL in seconds |
 | `SEARCH_TTL` | `900` | Cached search results TTL in seconds |
 | `META_TTL` | `86400` | Cached track metadata TTL in seconds |
-| `MAX_PLAYLISTS_PER_USER` | `200` | Maximum playlists a user can create (`403` on limit) |
-| `MAX_TRACKS_PER_PLAYLIST` | `5000` | Maximum tracks per playlist (`403` on limit) |
+| `MAX_PLAYLISTS_PER_USER` | `200` | Maximum playlists a user can create (`409` on limit) |
+| `MAX_TRACKS_PER_PLAYLIST` | `5000` | Maximum tracks per playlist (`409` on limit) |
 | `HISTORY_MAX_ITEMS_PER_USER` | `10000` | Play history items retained per user |
 | `HISTORY_RETENTION_DAYS` | `365` | Play history retention period in days |
 
@@ -214,31 +214,31 @@ All `/me/*` routes require a valid Bearer access token (`Authorization: Bearer <
 ### History
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/me/history` | Record played track with `client_event_id` idempotency, auto-creates track metadata cache |
+| `POST` | `/me/history` | Record played track with `client_event_id` idempotency (201 created or 200 if already logged); server resolves and caches track metadata |
 | `GET` | `/me/history` | Cursor-paginated listening history (`?limit=50&cursor=...`) |
 | `GET` | `/me/recent` | Distinct recent tracks (`?limit=20`) |
-| `DELETE` | `/me/history/{id}` | Delete a single history item |
-| `DELETE` | `/me/history` | Clear entire listening history |
+| `DELETE` | `/me/history/{id}` | Delete a single history item (204) |
+| `DELETE` | `/me/history` | Clear entire listening history (204) |
 
 ### Likes
 | Method | Path | Description |
 |---|---|---|
-| `PUT` | `/me/likes/{video_id}` | Like a track (creates track metadata cache if provided in body) |
-| `DELETE` | `/me/likes/{video_id}` | Unlike a track |
+| `PUT` | `/me/likes/{video_id}` | Like a track (204; server resolves track metadata from music source if not yet cached; 502 on upstream failure; client-supplied metadata ignored) |
+| `DELETE` | `/me/likes/{video_id}` | Unlike a track (204) |
 | `GET` | `/me/likes` | Cursor-paginated liked tracks (`?limit=50&cursor=...`) |
 | `GET` | `/me/likes/ids` | All liked video IDs for quick client-side heart state |
 
 ### Playlists
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/me/playlists` | Create a playlist (`name`, optional `description`) |
+| `POST` | `/me/playlists` | Create a playlist (`name`, optional `description`; 201 created, 409 if `MAX_PLAYLISTS_PER_USER` reached) |
 | `GET` | `/me/playlists` | List user's playlists with computed `track_count`, `duration_seconds`, `cover_thumbnails` |
-| `GET` | `/me/playlists/{id}` | Get playlist detail with cursor-paginated tracks |
-| `PATCH` | `/me/playlists/{id}` | Update playlist name or description |
-| `DELETE` | `/me/playlists/{id}` | Delete playlist |
-| `POST` | `/me/playlists/{id}/tracks` | Append tracks to playlist (`video_ids: List[str]`, duplicates ignored) |
-| `DELETE` | `/me/playlists/{id}/tracks/{video_id}` | Remove track from playlist and renumber positions |
-| `PUT` | `/me/playlists/{id}/tracks/reorder` | Reorder playlist tracks (`video_ids: List[str]` in new order) |
+| `GET` | `/me/playlists/{id}` | Get playlist detail with cursor-paginated tracks (404 if not found or unowned) |
+| `PATCH` | `/me/playlists/{id}` | Update playlist name or description (404 if not found or unowned) |
+| `DELETE` | `/me/playlists/{id}` | Delete playlist (204) |
+| `POST` | `/me/playlists/{id}/tracks` | Append tracks to playlist (`video_ids: List[str]`, duplicates skipped; 409 if `MAX_TRACKS_PER_PLAYLIST` reached) |
+| `DELETE` | `/me/playlists/{id}/tracks/{video_id}` | Remove track from playlist and renumber positions (204) |
+| `PUT` | `/me/playlists/{id}/tracks/reorder` | Reorder playlist tracks (`video_ids: List[str]` in new order; 204, also available at `/me/playlists/{id}/order`) |
 
 ---
 
@@ -319,23 +319,19 @@ Audio extraction from YouTube is intended strictly for private/educational use a
 11. **Phase 3 VPS Database Migration & Upgrade:**
     When deploying Phase 3 to your VPS:
     ```bash
-    # 1. Stop backend service
-    sudo systemctl stop melodia-backend  # or your service manager
-
-    # 2. Backup existing database
+    # 1. Backup existing database
     cd /home/music/app/backend
     .venv/bin/python -m app.tools.backup
 
-    # 3. Pull latest code
+    # 2. Pull latest code
     git pull origin main
 
-    # 4. Run database migration (0002_user_data)
+    # 3. Run database migration (0002_user_data)
     .venv/bin/alembic upgrade head
 
-    # 5. Restart backend service
-    sudo systemctl start melodia-backend
+    # 4. Restart the music backend however it is started on your VPS
     ```
-12. **Phase 3 Client Silent Login Setup:**
+12. **Phase 3 Client Silent Login & Testing:**
     Create `client/dart_defines.json` (strictly gitignored) based on `client/dart_defines.example.json`:
     ```json
     {
@@ -345,7 +341,13 @@ Audio extraction from YouTube is intended strictly for private/educational use a
       "LOCAL_PASSWORD": "YourStrongPassword123!"
     }
     ```
-    Then run with:
+    For local web testing:
     ```powershell
+    cd client
+    flutter run -d chrome --web-port 8611 --dart-define-from-file=dart_defines.json
+    ```
+    For local desktop testing:
+    ```powershell
+    cd client
     flutter run -d windows --dart-define-from-file=dart_defines.json
     ```
