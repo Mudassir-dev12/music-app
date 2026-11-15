@@ -94,18 +94,22 @@ async def upsert_tracks(db: AsyncSession, tracks: List[TrackSourceModel]) -> Non
     await db.commit()
 
 
+default_ytmusic_source = YTMusicSource()
+
+
 async def ensure_track_exists(
     db: AsyncSession,
     video_id: str,
-    source: YTMusicSource,
+    source: Optional[YTMusicSource] = None,
 ) -> TrackModel:
     res = await db.execute(select(TrackModel).where(TrackModel.video_id == video_id))
     existing = res.scalar_one_or_none()
     if existing:
         return existing
 
+    src = source or default_ytmusic_source
     try:
-        source_track = await source.get_track(video_id)
+        source_track = await src.get_track(video_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

@@ -246,12 +246,47 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
     p_bad_vid = (r_bad_vid.status_code == 400)
     report(15, "GET /audio/not-a-valid-id -> 400", p_bad_vid)
 
-    # 14. Logout and refresh fails
+    # --- Phase 3 User Data Checks ---
+    # 14. Like track & check liked ids
+    r_like = client.put(f"/me/likes/{target_vid}", headers=auth_headers)
+    r_likes_ids = client.get("/me/likes/ids", headers=auth_headers)
+    p_like = (r_like.status_code == 204 and r_likes_ids.status_code == 200 and target_vid in r_likes_ids.json().get("ids", []))
+    report(16, f"PUT /me/likes/{target_vid} -> 204 & GET /me/likes/ids contains track", p_like)
+
+    # 15. Create playlist, add track & read back
+    r_pl_create = client.post("/playlists", headers=auth_headers, json={"name": "Smoke Playlist", "description": "Smoke check"})
+    pl_id = r_pl_create.json().get("id") if r_pl_create.status_code == 201 else None
+    r_pl_add = client.post(f"/playlists/{pl_id}/tracks", headers=auth_headers, json={"video_ids": [target_vid]}) if pl_id else None
+    r_pl_get = client.get(f"/playlists/{pl_id}", headers=auth_headers) if pl_id else None
+    p_playlist = (
+        r_pl_create.status_code == 201
+        and r_pl_add.status_code == 200
+        and r_pl_add.json().get("added") == 1
+        and r_pl_get.status_code == 200
+        and r_pl_get.json().get("track_count") == 1
+        and len(r_pl_get.json().get("tracks", {}).get("items", [])) == 1
+    )
+    report(17, f"POST /playlists -> 201, POST /playlists/{pl_id}/tracks -> 200, GET /playlists/{pl_id} verified", p_playlist)
+
+    # 16. Log history entry twice with same client_event_id (idempotent: 201 then 200) & GET /me/recent
+    ev_smoke = "smoke_ev_unique_01"
+    r_hist1 = client.post("/me/history", headers=auth_headers, json={"video_id": target_vid, "listened_seconds": 35, "client_event_id": ev_smoke})
+    r_hist2 = client.post("/me/history", headers=auth_headers, json={"video_id": target_vid, "listened_seconds": 35, "client_event_id": ev_smoke})
+    r_recent = client.get("/me/recent", headers=auth_headers)
+    p_history = (
+        r_hist1.status_code == 201
+        and r_hist2.status_code == 200
+        and r_recent.status_code == 200
+        and any(t.get("video_id") == target_vid for t in r_recent.json())
+    )
+    report(18, "POST /me/history idempotent (201 then 200) & GET /me/recent returns track", p_history)
+
+    # 17. Logout and refresh fails
     r_logout = client.post("/auth/logout", json={"refresh_token": refresh_token})
     p_logout = (r_logout.status_code == 204)
     r_ref_after = client.post("/auth/refresh", json={"refresh_token": refresh_token})
     p_revoked = (r_ref_after.status_code == 401)
-    report(16, "POST /auth/logout revokes token, subsequent refresh fails (401)", (p_logout and p_revoked))
+    report(19, "POST /auth/logout revokes token, subsequent refresh fails (401)", (p_logout and p_revoked))
 
-print("\nAll 16 smoke tests PASSED successfully!")
+print("\nAll 19 smoke tests PASSED successfully!")
 EOF

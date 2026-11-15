@@ -6,7 +6,7 @@ from app.cache.factory import init_cache
 from app.config import settings
 from app.db.session import check_database_at_head
 from app.logging_setup import RequestLoggingMiddleware, setup_logging
-from app.routes import audio, auth, health, me, search, tracks
+from app.routes import audio, auth, health, history, likes, me, playlists, search, tracks
 from app.services.usage import bandwidth_guard
 
 logger = logging.getLogger("music_app")
@@ -71,6 +71,9 @@ if origins or settings.APP_ENV == "development":
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(me.router)
+app.include_router(history.router)
+app.include_router(likes.router)
+app.include_router(playlists.router)
 app.include_router(search.router)
 app.include_router(tracks.router)
 app.include_router(audio.router)

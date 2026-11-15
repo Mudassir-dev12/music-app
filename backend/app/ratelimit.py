@@ -38,3 +38,27 @@ async def audio_rate_limiter(
     user: User = Depends(get_audio_user),
 ) -> User:
     return await enforce_rate_limit(user)
+
+
+async def history_write_rate_limiter(
+    request: Request,
+    user: User = Depends(get_current_user),
+) -> User:
+    # 1. Base rate limit
+    await enforce_rate_limit(user)
+
+    # 2. History-specific write limit (120/min)
+    cache = get_cache()
+    now = int(time.time())
+    minute_bucket = now // 60
+    key = f"rl:hw:{user.id}:{minute_bucket}"
+    count = await cache.incr(key, ttl=60)
+    if count > 120:
+        seconds_left = 60 - (now % 60)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="History write rate limit exceeded. Please wait.",
+            headers={"Retry-After": str(max(1, seconds_left))},
+        )
+    return user
+
