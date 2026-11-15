@@ -38,6 +38,7 @@ logs/
 **/.flutter-plugins
 **/.flutter-plugins-dependencies
 **/.packages
+client/dart_defines.json
 # pubspec.lock is committed for apps (not packages)
 
 # Flutter web build output
