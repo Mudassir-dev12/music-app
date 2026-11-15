@@ -41,9 +41,9 @@ void main() {
       isExplicit: false,
     );
 
-    final stateWithTrack = PlayerStateData(
+    const stateWithTrack = PlayerStateData(
       status: PlayerStatus.paused,
-      queue: const QueueState(
+      queue: QueueState(
         queue: [track],
         currentIndex: 0,
         playNextQueue: [],

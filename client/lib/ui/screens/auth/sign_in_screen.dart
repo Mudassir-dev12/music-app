@@ -63,6 +63,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           () => _retryAfterSeconds = e.retryAfterSeconds);
     } on ApiError catch (e) {
       setState(() => _genericError = e.message);
+    } catch (e) {
+      setState(() => _genericError = 'Connection failed: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

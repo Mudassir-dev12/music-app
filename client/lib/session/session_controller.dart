@@ -126,6 +126,9 @@ class SessionController extends Notifier<SessionState> {
     } on ApiError catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
       rethrow;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      rethrow;
     }
   }
 
@@ -153,6 +156,9 @@ class SessionController extends Notifier<SessionState> {
       );
     } on ApiError catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
+      rethrow;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
       rethrow;
     }
   }
