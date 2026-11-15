@@ -333,3 +333,38 @@ class HistoryNotifier extends AsyncNotifier<Page<HistoryItem>> {
     state = AsyncData(await api.getHistory());
   }
 }
+
+// ---------------------------------------------------------------------------
+// 6. Liked Songs (Page)
+// ---------------------------------------------------------------------------
+
+final likedSongsProvider =
+    AsyncNotifierProvider<LikedSongsNotifier, Page<LikedItem>>(LikedSongsNotifier.new);
+
+class LikedSongsNotifier extends AsyncNotifier<Page<LikedItem>> {
+  @override
+  Future<Page<LikedItem>> build() async {
+    final isSignedIn = ref.watch(isSignedInProvider);
+    if (!isSignedIn) return const Page(items: []);
+
+    final api = ref.read(userApiProvider);
+    return await api.getLikes();
+  }
+
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (current == null || !current.hasMore) return;
+
+    final api = ref.read(userApiProvider);
+    final next = await api.getLikes(cursor: current.nextCursor);
+    state = AsyncData(Page(
+      items: [...current.items, ...next.items],
+      nextCursor: next.nextCursor,
+    ));
+  }
+
+  Future<void> refresh() async {
+    final api = ref.read(userApiProvider);
+    state = AsyncData(await api.getLikes());
+  }
+}

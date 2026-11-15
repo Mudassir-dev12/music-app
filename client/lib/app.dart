@@ -12,6 +12,7 @@ import 'ui/screens/browse_screen.dart';
 import 'ui/screens/library_screen.dart';
 import 'ui/screens/listen_now_screen.dart';
 import 'ui/screens/now_playing_screen.dart';
+import 'ui/screens/playlist_screen.dart';
 import 'ui/screens/queue_panel_screen.dart';
 import 'ui/screens/search_screen.dart';
 import 'ui/shell/adaptive_shell.dart';
@@ -76,6 +77,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => const MaterialPage(
           fullscreenDialog: true,
           child: QueuePanelScreen(),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/playlist/:id',
+        builder: (context, state) => PlaylistScreen(
+          playlistId: state.pathParameters['id']!,
         ),
       ),
     ],
