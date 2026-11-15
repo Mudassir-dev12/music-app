@@ -91,12 +91,12 @@ class UserApi {
   // ---------------------------------------------------------------------------
 
   Future<List<Playlist>> listPlaylists() async {
-    final data = await _client.get('/playlists') as List<dynamic>;
+    final data = await _client.get('/me/playlists') as List<dynamic>;
     return data.map((e) => Playlist.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<Playlist> createPlaylist(String name, {String? description}) async {
-    final data = await _client.post('/playlists', {
+    final data = await _client.post('/me/playlists', {
       'name': name,
       if (description != null) 'description': description,
     });
@@ -106,7 +106,7 @@ class UserApi {
   Future<PlaylistDetail> getPlaylist(String id, {int limit = 50, String? cursor}) async {
     final query = <String, dynamic>{'limit': limit};
     if (cursor != null) query['cursor'] = cursor;
-    final data = await _client.get('/playlists/$id', queryParams: query);
+    final data = await _client.get('/me/playlists/$id', queryParams: query);
     return PlaylistDetail.fromJson(data as Map<String, dynamic>);
   }
 
@@ -114,27 +114,27 @@ class UserApi {
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
     if (description != null) body['description'] = description;
-    final data = await _client.patch('/playlists/$id', body);
+    final data = await _client.patch('/me/playlists/$id', body);
     return Playlist.fromJson(data as Map<String, dynamic>);
   }
 
   Future<void> deletePlaylist(String id) async {
-    await _client.delete('/playlists/$id');
+    await _client.delete('/me/playlists/$id');
   }
 
   Future<PlaylistAddResult> addTracksToPlaylist(String id, List<String> videoIds) async {
-    final data = await _client.post('/playlists/$id/tracks', {
+    final data = await _client.post('/me/playlists/$id/tracks', {
       'video_ids': videoIds,
     });
     return PlaylistAddResult.fromJson(data as Map<String, dynamic>);
   }
 
   Future<void> removeTrackFromPlaylist(String id, String videoId) async {
-    await _client.delete('/playlists/$id/tracks/$videoId');
+    await _client.delete('/me/playlists/$id/tracks/$videoId');
   }
 
   Future<void> reorderPlaylist(String id, List<String> videoIds) async {
-    await _client.put('/playlists/$id/order', {
+    await _client.put('/me/playlists/$id/tracks/reorder', {
       'video_ids': videoIds,
     });
   }

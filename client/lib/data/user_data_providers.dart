@@ -25,17 +25,18 @@ class LikedIdsNotifier extends AsyncNotifier<Set<String>> {
     return ids.toSet();
   }
 
-  /// Optimistically toggles like state for [track].
-  Future<void> toggleLike(Track track) async {
+  /// Optimistically toggles like state for [trackOrVideoId] (either a [Track] or a [String] videoId).
+  Future<void> toggleLike(dynamic trackOrVideoId) async {
+    final videoId = trackOrVideoId is Track ? trackOrVideoId.videoId : trackOrVideoId as String;
     final current = state.valueOrNull ?? <String>{};
-    final wasLiked = current.contains(track.videoId);
+    final wasLiked = current.contains(videoId);
 
     // 1. Optimistic update
     final optimistic = Set<String>.from(current);
     if (wasLiked) {
-      optimistic.remove(track.videoId);
+      optimistic.remove(videoId);
     } else {
-      optimistic.add(track.videoId);
+      optimistic.add(videoId);
     }
     state = AsyncData(optimistic);
 
@@ -43,9 +44,9 @@ class LikedIdsNotifier extends AsyncNotifier<Set<String>> {
     final api = ref.read(userApiProvider);
     try {
       if (wasLiked) {
-        await api.unlikeTrack(track.videoId);
+        await api.unlikeTrack(videoId);
       } else {
-        await api.likeTrack(track.videoId);
+        await api.likeTrack(videoId);
       }
     } catch (e, st) {
       // 3. Revert on failure
