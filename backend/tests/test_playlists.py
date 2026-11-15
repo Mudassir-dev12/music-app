@@ -31,7 +31,7 @@ async def test_playlists_crud_and_limits(client: AsyncClient):
 
     # 1. Create playlist
     r_create = await client.post(
-        "/playlists",
+        "/me/playlists",
         headers=headers,
         json={"name": "My Favorites", "description": "Good songs"},
     )
@@ -43,7 +43,7 @@ async def test_playlists_crud_and_limits(client: AsyncClient):
 
     # 2. Patch playlist
     r_patch = await client.patch(
-        f"/playlists/{pl_id}",
+        f"/me/playlists/{pl_id}",
         headers=headers,
         json={"name": "Renamed Favorites", "description": "Updated"},
     )
@@ -56,7 +56,7 @@ async def test_playlists_crud_and_limits(client: AsyncClient):
     settings.MAX_PLAYLISTS_PER_USER = 1
     try:
         r_over = await client.post(
-            "/playlists",
+            "/me/playlists",
             headers=headers,
             json={"name": "Another Playlist"},
         )
@@ -66,11 +66,11 @@ async def test_playlists_crud_and_limits(client: AsyncClient):
         settings.MAX_PLAYLISTS_PER_USER = orig_max
 
     # 4. Delete playlist
-    r_del = await client.delete(f"/playlists/{pl_id}", headers=headers)
+    r_del = await client.delete(f"/me/playlists/{pl_id}", headers=headers)
     assert r_del.status_code == 204
 
     # 5. Get after delete -> 404
-    r_get = await client.get(f"/playlists/{pl_id}", headers=headers)
+    r_get = await client.get(f"/me/playlists/{pl_id}", headers=headers)
     assert r_get.status_code == 404
 
 
@@ -84,7 +84,7 @@ async def test_playlist_tracks_add_skip_duplicates_and_cover_thumbs(client: Asyn
     headers = {"Authorization": f"Bearer {token}"}
 
     # Create playlist
-    pl = (await client.post("/playlists", headers=headers, json={"name": "Test Tracks"})).json()
+    pl = (await client.post("/me/playlists", headers=headers, json={"name": "Test Tracks"})).json()
     pl_id = pl["id"]
 
     # Mock tracks with thumbnails
@@ -97,7 +97,7 @@ async def test_playlist_tracks_add_skip_duplicates_and_cover_thumbs(client: Asyn
     with patch("app.services.tracks.default_ytmusic_source.get_track", side_effect=[t1, t2, t3, t4, t5]):
         # Add 3 tracks
         r_add1 = await client.post(
-            f"/playlists/{pl_id}/tracks",
+            f"/me/playlists/{pl_id}/tracks",
             headers=headers,
             json={"video_ids": [t1.video_id, t2.video_id, t3.video_id]},
         )
@@ -108,7 +108,7 @@ async def test_playlist_tracks_add_skip_duplicates_and_cover_thumbs(client: Asyn
 
         # Add again with 1 duplicate and 2 new
         r_add2 = await client.post(
-            f"/playlists/{pl_id}/tracks",
+            f"/me/playlists/{pl_id}/tracks",
             headers=headers,
             json={"video_ids": [t2.video_id, t4.video_id, t5.video_id]},
         )
@@ -118,7 +118,7 @@ async def test_playlist_tracks_add_skip_duplicates_and_cover_thumbs(client: Asyn
         assert res2["skipped"] == [t2.video_id]
 
     # Verify playlist detail has 5 tracks, and 4 cover thumbnails (for 2x2 mosaic)
-    r_detail = await client.get(f"/playlists/{pl_id}", headers=headers)
+    r_detail = await client.get(f"/me/playlists/{pl_id}", headers=headers)
     assert r_detail.status_code == 200
     detail = r_detail.json()
     assert detail["track_count"] == 5
@@ -140,7 +140,7 @@ async def test_playlist_reorder_and_remove(client: AsyncClient):
     token = reg.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    pl = (await client.post("/playlists", headers=headers, json={"name": "Reorder Test"})).json()
+    pl = (await client.post("/me/playlists", headers=headers, json={"name": "Reorder Test"})).json()
     pl_id = pl["id"]
 
     v1, v2, v3 = "ordTrk00001", "ordTrk00002", "ordTrk00003"
@@ -149,26 +149,26 @@ async def test_playlist_reorder_and_remove(client: AsyncClient):
     t3 = make_mock_track(v3, "S3")
 
     with patch("app.services.tracks.default_ytmusic_source.get_track", side_effect=[t1, t2, t3]):
-        await client.post(f"/playlists/{pl_id}/tracks", headers=headers, json={"video_ids": [v1, v2, v3]})
+        await client.post(f"/me/playlists/{pl_id}/tracks", headers=headers, json={"video_ids": [v1, v2, v3]})
 
-    # Reorder: Reverse order [v3, v2, v1]
-    r_ord = await client.put(f"/playlists/{pl_id}/order", headers=headers, json={"video_ids": [v3, v2, v1]})
+    # Reorder: Reverse order [v3, v2, v1] via /me/playlists/{id}/tracks/reorder
+    r_ord = await client.put(f"/me/playlists/{pl_id}/tracks/reorder", headers=headers, json={"video_ids": [v3, v2, v1]})
     assert r_ord.status_code == 204
 
-    r_check = await client.get(f"/playlists/{pl_id}", headers=headers)
+    r_check = await client.get(f"/me/playlists/{pl_id}", headers=headers)
     items = r_check.json()["tracks"]["items"]
     assert [it["track"]["video_id"] for it in items] == [v3, v2, v1]
     assert [it["position"] for it in items] == [1, 2, 3]
 
     # Invalid reorder: missing id -> 422
-    r_bad_set = await client.put(f"/playlists/{pl_id}/order", headers=headers, json={"video_ids": [v3, v1]})
+    r_bad_set = await client.put(f"/me/playlists/{pl_id}/tracks/reorder", headers=headers, json={"video_ids": [v3, v1]})
     assert r_bad_set.status_code == 422
 
     # Remove track v2
-    r_rem = await client.delete(f"/playlists/{pl_id}/tracks/{v2}", headers=headers)
+    r_rem = await client.delete(f"/me/playlists/{pl_id}/tracks/{v2}", headers=headers)
     assert r_rem.status_code == 204
 
-    r_after_rem = await client.get(f"/playlists/{pl_id}", headers=headers)
+    r_after_rem = await client.get(f"/me/playlists/{pl_id}", headers=headers)
     items_after = r_after_rem.json()["tracks"]["items"]
     assert len(items_after) == 2
     assert [it["track"]["video_id"] for it in items_after] == [v3, v1]

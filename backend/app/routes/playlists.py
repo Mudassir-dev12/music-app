@@ -22,7 +22,7 @@ from app.schemas.user_data import (
 )
 from app.services.tracks import db_track_to_source_model, ensure_track_exists
 
-router = APIRouter(prefix="/playlists", tags=["playlists"])
+router = APIRouter(prefix="/me/playlists", tags=["playlists"])
 
 
 async def get_cover_thumbnails(db: AsyncSession, playlist_id: str) -> List[str]:
@@ -372,6 +372,7 @@ async def remove_track_from_playlist(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.put("/{id}/tracks/reorder", status_code=status.HTTP_204_NO_CONTENT)
 @router.put("/{id}/order", status_code=status.HTTP_204_NO_CONTENT)
 async def reorder_playlist_tracks(
     id: str,

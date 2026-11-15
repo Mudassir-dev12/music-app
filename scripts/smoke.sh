@@ -254,10 +254,10 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
     report(16, f"PUT /me/likes/{target_vid} -> 204 & GET /me/likes/ids contains track", p_like)
 
     # 15. Create playlist, add track & read back
-    r_pl_create = client.post("/playlists", headers=auth_headers, json={"name": "Smoke Playlist", "description": "Smoke check"})
+    r_pl_create = client.post("/me/playlists", headers=auth_headers, json={"name": "Smoke Playlist", "description": "Smoke check"})
     pl_id = r_pl_create.json().get("id") if r_pl_create.status_code == 201 else None
-    r_pl_add = client.post(f"/playlists/{pl_id}/tracks", headers=auth_headers, json={"video_ids": [target_vid]}) if pl_id else None
-    r_pl_get = client.get(f"/playlists/{pl_id}", headers=auth_headers) if pl_id else None
+    r_pl_add = client.post(f"/me/playlists/{pl_id}/tracks", headers=auth_headers, json={"video_ids": [target_vid]}) if pl_id else None
+    r_pl_get = client.get(f"/me/playlists/{pl_id}", headers=auth_headers) if pl_id else None
     p_playlist = (
         r_pl_create.status_code == 201
         and r_pl_add.status_code == 200
@@ -266,7 +266,7 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
         and r_pl_get.json().get("track_count") == 1
         and len(r_pl_get.json().get("tracks", {}).get("items", [])) == 1
     )
-    report(17, f"POST /playlists -> 201, POST /playlists/{pl_id}/tracks -> 200, GET /playlists/{pl_id} verified", p_playlist)
+    report(17, f"POST /me/playlists -> 201, POST /me/playlists/{pl_id}/tracks -> 200, GET /me/playlists/{pl_id} verified", p_playlist)
 
     # 16. Log history entry twice with same client_event_id (idempotent: 201 then 200) & GET /me/recent
     ev_smoke = "smoke_ev_unique_01"

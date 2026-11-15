@@ -2,6 +2,9 @@ from unittest.mock import AsyncMock, patch
 import uuid
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from app.db.models import Track as TrackModel
+from app.db.session import get_sessionmaker
 from app.sources.models import Artist, Track
 
 
@@ -86,3 +89,56 @@ async def test_likes_upstream_failure_502(client: AsyncClient):
     # Nothing was written
     r_ids = await client.get("/me/likes/ids", headers=headers)
     assert vid not in r_ids.json()["ids"]
+
+
+@pytest.mark.asyncio
+async def test_client_supplied_track_metadata_is_ignored_and_server_controls_tracks(client: AsyncClient):
+    email = f"trackspoof_{uuid.uuid4().hex[:8]}@example.com"
+    reg = await client.post(
+        "/auth/register", json={"email": email, "password": "ValidPassword123!"}
+    )
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    vid = "spoofTrk001"
+    server_track = make_mock_track(vid, "Official Server Title")
+
+    with patch("app.services.tracks.default_ytmusic_source.get_track", return_value=server_track):
+        # Client tries to send malicious/spoofed metadata in body
+        res = await client.put(
+            f"/me/likes/{vid}",
+            json={
+                "title": "Hacked Client Title",
+                "artist": "Hacked Artist",
+                "duration_seconds": 9999,
+            },
+            headers=headers,
+        )
+        assert res.status_code == 204
+
+    # Verify database tracks table contains official server title, not client title
+    async with get_sessionmaker()() as db:
+        track_row = (await db.execute(select(TrackModel).where(TrackModel.video_id == vid))).scalar_one()
+        assert track_row.title == "Official Server Title"
+        assert track_row.artist == "Test Artist"
+        assert track_row.title != "Hacked Client Title"
+
+    # Verify GET /me/likes also returns official server title
+    get_res = await client.get("/me/likes", headers=headers)
+    assert get_res.status_code == 200
+    items = get_res.json()["items"]
+    assert len(items) == 1
+    assert items[0]["track"]["title"] == "Official Server Title"
+
+    # Verify that when lookup fails, 502 is returned and nothing is written to tracks table
+    vid_unknown = "unkTrk00001"
+    with patch(
+        "app.services.tracks.default_ytmusic_source.get_track",
+        side_effect=Exception("Not found on upstream"),
+    ):
+        res_fail = await client.put(f"/me/likes/{vid_unknown}", headers=headers)
+        assert res_fail.status_code == 502
+
+    async with get_sessionmaker()() as db:
+        track_row_fail = (await db.execute(select(TrackModel).where(TrackModel.video_id == vid_unknown))).scalar_one_or_none()
+        assert track_row_fail is None
