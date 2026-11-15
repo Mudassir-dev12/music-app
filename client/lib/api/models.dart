@@ -160,3 +160,223 @@ class AudioTicket {
         expiresIn: json['expires_in'] as int,
       );
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3 User Data Models
+// ---------------------------------------------------------------------------
+
+/// Generic cursor-paginated page.
+class Page<T> {
+  const Page({
+    required this.items,
+    this.nextCursor,
+  });
+
+  final List<T> items;
+  final String? nextCursor;
+
+  bool get hasMore => nextCursor != null;
+}
+
+/// A play history record.
+class HistoryItem {
+  const HistoryItem({
+    required this.id,
+    required this.playedAt,
+    required this.listenedSeconds,
+    required this.track,
+  });
+
+  final int id;
+  final DateTime playedAt;
+  final int listenedSeconds;
+  final Track track;
+
+  factory HistoryItem.fromJson(Map<String, dynamic> json) => HistoryItem(
+        id: json['id'] as int,
+        playedAt: DateTime.parse(json['played_at'] as String),
+        listenedSeconds: json['listened_seconds'] as int,
+        track: Track.fromJson(json['track'] as Map<String, dynamic>),
+      );
+}
+
+/// A liked track item.
+class LikedItem {
+  const LikedItem({
+    required this.likedAt,
+    required this.track,
+  });
+
+  final DateTime likedAt;
+  final Track track;
+
+  factory LikedItem.fromJson(Map<String, dynamic> json) => LikedItem(
+        likedAt: DateTime.parse(json['liked_at'] as String),
+        track: Track.fromJson(json['track'] as Map<String, dynamic>),
+      );
+}
+
+/// Playlist summary item.
+class Playlist {
+  const Playlist({
+    required this.id,
+    required this.name,
+    this.description,
+    required this.trackCount,
+    required this.durationSeconds,
+    required this.coverThumbnails,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String name;
+  final String? description;
+  final int trackCount;
+  final int durationSeconds;
+  final List<String> coverThumbnails;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  Playlist copyWith({
+    String? name,
+    String? description,
+    int? trackCount,
+    int? durationSeconds,
+    List<String>? coverThumbnails,
+    DateTime? updatedAt,
+  }) {
+    return Playlist(
+      id: id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      trackCount: trackCount ?? this.trackCount,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      coverThumbnails: coverThumbnails ?? this.coverThumbnails,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  factory Playlist.fromJson(Map<String, dynamic> json) => Playlist(
+        id: json['id'] as String,
+        name: (json['name'] as String?) ?? '',
+        description: json['description'] as String?,
+        trackCount: (json['track_count'] as int?) ?? 0,
+        durationSeconds: (json['duration_seconds'] as int?) ?? 0,
+        coverThumbnails: (json['cover_thumbnails'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            const [],
+        createdAt: DateTime.parse(json['created_at'] as String),
+        updatedAt: DateTime.parse(json['updated_at'] as String),
+      );
+}
+
+/// An entry in a playlist.
+class PlaylistTrackItem {
+  const PlaylistTrackItem({
+    required this.position,
+    required this.addedAt,
+    required this.track,
+  });
+
+  final int position;
+  final DateTime addedAt;
+  final Track track;
+
+  factory PlaylistTrackItem.fromJson(Map<String, dynamic> json) =>
+      PlaylistTrackItem(
+        position: json['position'] as int,
+        addedAt: DateTime.parse(json['added_at'] as String),
+        track: Track.fromJson(json['track'] as Map<String, dynamic>),
+      );
+}
+
+/// Detailed playlist info including paginated tracks.
+class PlaylistDetail {
+  const PlaylistDetail({
+    required this.id,
+    required this.name,
+    this.description,
+    required this.trackCount,
+    required this.durationSeconds,
+    required this.coverThumbnails,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.tracks,
+  });
+
+  final String id;
+  final String name;
+  final String? description;
+  final int trackCount;
+  final int durationSeconds;
+  final List<String> coverThumbnails;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final Page<PlaylistTrackItem> tracks;
+
+  PlaylistDetail copyWith({
+    String? name,
+    String? description,
+    int? trackCount,
+    int? durationSeconds,
+    List<String>? coverThumbnails,
+    DateTime? updatedAt,
+    Page<PlaylistTrackItem>? tracks,
+  }) {
+    return PlaylistDetail(
+      id: id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      trackCount: trackCount ?? this.trackCount,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      coverThumbnails: coverThumbnails ?? this.coverThumbnails,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      tracks: tracks ?? this.tracks,
+    );
+  }
+
+  factory PlaylistDetail.fromJson(Map<String, dynamic> json) {
+    final tracksJson = json['tracks'] as Map<String, dynamic>? ?? {};
+    final trackItems = (tracksJson['items'] as List<dynamic>?)
+            ?.map((e) => PlaylistTrackItem.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        const [];
+    final nextCursor = tracksJson['next_cursor'] as String?;
+
+    return PlaylistDetail(
+      id: json['id'] as String,
+      name: (json['name'] as String?) ?? '',
+      description: json['description'] as String?,
+      trackCount: (json['track_count'] as int?) ?? 0,
+      durationSeconds: (json['duration_seconds'] as int?) ?? 0,
+      coverThumbnails: (json['cover_thumbnails'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      tracks: Page(items: trackItems, nextCursor: nextCursor),
+    );
+  }
+}
+
+/// Result returned from adding tracks to a playlist.
+class PlaylistAddResult {
+  const PlaylistAddResult({required this.added, required this.skipped});
+
+  final int added;
+  final List<String> skipped;
+
+  factory PlaylistAddResult.fromJson(Map<String, dynamic> json) =>
+      PlaylistAddResult(
+        added: json['added'] as int,
+        skipped: (json['skipped'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            const [],
+      );
+}

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'player/history_outbox.dart';
 import 'player/shortcuts.dart';
 import 'session/session_controller.dart';
 import 'theme/app_theme.dart';
@@ -90,6 +91,7 @@ class MelodiaApp extends ConsumerWidget {
     final themeMode = themeAsync.valueOrNull ?? ThemeMode.system;
     final router = ref.watch(routerProvider);
     final session = ref.watch(sessionProvider);
+    ref.watch(historyOutboxProvider);
 
     if (session.isLoading) {
       return MaterialApp(

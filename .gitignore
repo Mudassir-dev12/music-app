@@ -20,7 +20,9 @@ __pycache__/
 .pytest_cache/
 
 # Databases & Backups
-data/
+/data/
+backend/data/
+!client/lib/data/
 backups/
 *.db
 *.db-wal

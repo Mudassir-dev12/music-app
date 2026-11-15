@@ -265,6 +265,36 @@ class ApiClient {
     }
   }
 
+  /// PUT [path] with optional [body]. Returns decoded JSON.
+  Future<dynamic> put(String path, [dynamic body]) async {
+    try {
+      final resp = await _dio.put<dynamic>(path, data: body);
+      return resp.data;
+    } on DioException catch (e) {
+      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+    }
+  }
+
+  /// PATCH [path] with a JSON [body]. Returns decoded JSON.
+  Future<dynamic> patch(String path, dynamic body) async {
+    try {
+      final resp = await _dio.patch<dynamic>(path, data: body);
+      return resp.data;
+    } on DioException catch (e) {
+      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+    }
+  }
+
+  /// DELETE [path] with optional [queryParams]. Returns decoded JSON.
+  Future<dynamic> delete(String path, {Map<String, dynamic>? queryParams}) async {
+    try {
+      final resp = await _dio.delete<dynamic>(path, queryParameters: queryParams);
+      return resp.data;
+    } on DioException catch (e) {
+      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+    }
+  }
+
   /// HEAD [path] for warmup/pre-resolving streams.
   Future<dynamic> head(String path) async {
     try {
