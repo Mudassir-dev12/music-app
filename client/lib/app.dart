@@ -20,21 +20,12 @@ import 'ui/shell/adaptive_shell.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final session = ref.watch(sessionProvider);
-
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/listen-now',
     redirect: (context, state) {
-      if (session.isLoading) return null; // Wait for initial session restore
-
-      final isSignedIn = session.isSignedIn;
-      final isAuthRoute = state.matchedLocation.startsWith('/auth');
-
-      if (!isSignedIn && !isAuthRoute) {
-        return '/auth/sign-in';
-      }
-      if (isSignedIn && isAuthRoute) {
+      // In test phase: bypass all auth screens and always go directly to main app
+      if (state.matchedLocation.startsWith('/auth')) {
         return '/listen-now';
       }
       return null;

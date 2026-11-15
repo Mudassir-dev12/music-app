@@ -12,5 +12,6 @@ void main() {
       ),
     );
     expect(find.byType(MaterialApp), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
   });
 }

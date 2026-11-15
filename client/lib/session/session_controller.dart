@@ -69,11 +69,22 @@ final isSignedInProvider = Provider<bool>((ref) {
 /// On construction it attempts to restore a session from the stored refresh
 /// token (showing [SessionState.isLoading] = true during the attempt).
 class SessionController extends Notifier<SessionState> {
+  static final _kTestUser = UserOut(
+    id: '8557305a-ab68-4f44-a971-38ffff6aa150',
+    email: 'test@example.com',
+    displayName: 'Test User',
+    createdAt: DateTime(2026, 1, 1),
+  );
+
   @override
   SessionState build() {
-    // Kick off async restore; we return the loading state synchronously.
+    // In test phase: start with the test user immediately (no loading screen)
     _restoreSession();
-    return const SessionState(isLoading: true);
+    return SessionState(
+      user: _kTestUser,
+      accessToken: 'test-token',
+      isLoading: false,
+    );
   }
 
   AuthApi get _auth => ref.read(authApiProvider);
@@ -85,14 +96,9 @@ class SessionController extends Notifier<SessionState> {
   // ---------------------------------------------------------------------------
 
   Future<void> _restoreSession() async {
-    final stored = await _store.loadRefreshToken();
-    if (stored == null) {
-      state = const SessionState(isLoading: false);
-      _wireApiClient(null);
-      return;
-    }
+    // Test mode: silent background sign-in to get fresh JWT tokens for backend API
     try {
-      final pair = await _auth.refresh(stored);
+      final pair = await _auth.signIn('test@example.com', 'Password12345!');
       await _store.saveRefreshToken(pair.refreshToken);
       _wireApiClient(pair.accessToken);
       state = SessionState(
@@ -101,9 +107,8 @@ class SessionController extends Notifier<SessionState> {
         isLoading: false,
       );
     } catch (_) {
-      await _store.clearRefreshToken();
-      _wireApiClient(null);
-      state = const SessionState(isLoading: false);
+      // Fallback: keep preconfigured test session
+      _wireApiClient(state.accessToken);
     }
   }
 
@@ -170,12 +175,16 @@ class SessionController extends Notifier<SessionState> {
       try {
         await _auth.signOut(storedToken);
       } catch (_) {
-        // Best-effort: even if the network call fails, clear local state.
+        // Best-effort
       }
     }
     await _store.clearRefreshToken();
-    _wireApiClient(null);
-    state = const SessionState(isLoading: false);
+    // In test phase: reset to active test user session
+    state = SessionState(
+      user: _kTestUser,
+      accessToken: 'test-token',
+      isLoading: false,
+    );
   }
 
   // ---------------------------------------------------------------------------
