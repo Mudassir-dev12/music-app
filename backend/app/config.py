@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     SEARCH_TTL: int = 900
     META_TTL: int = 86400
 
+    # Phase 3: User Data Limits
+    MAX_PLAYLISTS_PER_USER: int = 200
+    MAX_TRACKS_PER_PLAYLIST: int = 5000
+    HISTORY_MAX_ITEMS_PER_USER: int = 10000
+    HISTORY_RETENTION_DAYS: int = 365
+
     @property
     def cors_origins_list(self) -> List[str]:
         if not self.CORS_ORIGINS:

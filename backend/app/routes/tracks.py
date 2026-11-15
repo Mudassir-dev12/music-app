@@ -1,10 +1,13 @@
 import re
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.cache.factory import get_cache
 from app.config import settings
 from app.db.models import User
+from app.db.session import get_db_session
 from app.ratelimit import rate_limiter
 from app.routes.search import ytmusic_source
+from app.services.tracks import upsert_track
 from app.sources.models import Track
 
 router = APIRouter(prefix="/track", tags=["tracks"])
@@ -23,6 +26,7 @@ def validate_video_id(video_id: str) -> None:
 async def get_track(
     video_id: str,
     user: User = Depends(rate_limiter),
+    db: AsyncSession = Depends(get_db_session),
 ):
     validate_video_id(video_id)
 
@@ -31,10 +35,11 @@ async def get_track(
 
     cached = await cache.get(cache_key)
     if cached:
-        if isinstance(cached, dict):
-            return Track(**cached)
-        return cached
+        track_res = Track(**cached) if isinstance(cached, dict) else cached
+        await upsert_track(db, track_res)
+        return track_res
 
     track = await ytmusic_source.get_track(video_id)
     await cache.set(cache_key, track.model_dump(), ttl=settings.META_TTL)
+    await upsert_track(db, track)
     return track

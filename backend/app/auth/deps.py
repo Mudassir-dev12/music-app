@@ -86,13 +86,6 @@ async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: AsyncSession = Depends(get_db_session),
 ) -> User:
-    if credentials and credentials.credentials == "test-token":
-        res = await db.execute(select(User).limit(1))
-        dev_user = res.scalar_one_or_none()
-        if dev_user:
-            request.state.user_id = dev_user.id
-            return dev_user
-
     if not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -132,12 +125,6 @@ async def get_audio_user(
         return await _resolve_active_user(request, payload.get("sub"), db)
 
     if credentials and credentials.credentials:
-        if credentials.credentials == "test-token":
-            res = await db.execute(select(User).limit(1))
-            dev_user = res.scalar_one_or_none()
-            if dev_user:
-                request.state.user_id = dev_user.id
-                return dev_user
         try:
             payload = verify_access_token(credentials.credentials)
         except Exception:

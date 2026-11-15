@@ -111,7 +111,7 @@ async def check_database_at_head() -> None:
         try:
             result = await conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1"))
             row = result.fetchone()
-            if not row or row[0] != "0001_init":
+            if not row or row[0] not in ("0001_init", "0002_user_data"):
                 raise RuntimeError(
                     f"Database is not at migration head (found: {row[0] if row else 'none'}). "
                     "Run 'python -m alembic upgrade head' first."
