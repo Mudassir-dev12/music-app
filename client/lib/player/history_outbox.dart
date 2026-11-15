@@ -61,6 +61,7 @@ class HistoryOutbox {
   static const int _kMaxOutboxItems = 200;
 
   bool _isFlushing = false;
+  bool _needsAnotherFlush = false;
 
   void init() {
     // Listen to player 30s events
@@ -92,50 +93,56 @@ class HistoryOutbox {
     await _saveItems(prefs, items);
 
     // Trigger background flush
-    flush();
+    await flush();
   }
 
   Future<void> flush() async {
-    if (_isFlushing) return;
+    if (_isFlushing) {
+      _needsAnotherFlush = true;
+      return;
+    }
     _isFlushing = true;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final items = await _loadItems(prefs);
-      if (items.isEmpty) return;
+      do {
+        _needsAnotherFlush = false;
+        final prefs = await SharedPreferences.getInstance();
+        final items = await _loadItems(prefs);
+        if (items.isEmpty) break;
 
-      final api = ref.read(userApiProvider);
-      final remaining = List<OutboxItem>.from(items);
+        final api = ref.read(userApiProvider);
+        final remaining = List<OutboxItem>.from(items);
 
-      for (final item in items) {
-        try {
-          await api.recordHistory(
-            videoId: item.videoId,
-            listenedSeconds: item.listenedSeconds,
-            clientEventId: item.clientEventId,
-          );
-          remaining.remove(item);
-        } on RateLimitError {
-          // Keep item and pause flushing
-          break;
-        } on ApiError catch (e) {
-          // If 4xx other than 429: drop it
-          if (e is ValidationError ||
-              e is UnauthorizedError ||
-              e is ForbiddenError ||
-              e is ConflictError) {
-            remaining.remove(item);
-          } else {
-            // Server error: keep and pause
+        for (final item in items) {
+          try {
+            await api.recordHistory(
+              videoId: item.videoId,
+              listenedSeconds: item.listenedSeconds,
+              clientEventId: item.clientEventId,
+            );
+            remaining.removeWhere((e) => e.clientEventId == item.clientEventId);
+          } on RateLimitError {
+            // Keep item and pause flushing
+            break;
+          } on ApiError catch (e) {
+            // If 4xx other than 429: drop it
+            if (e is ValidationError ||
+                e is UnauthorizedError ||
+                e is ForbiddenError ||
+                e is ConflictError) {
+              remaining.removeWhere((e) => e.clientEventId == item.clientEventId);
+            } else {
+              // Server error: keep and pause
+              break;
+            }
+          } catch (_) {
+            // Network error: keep and pause
             break;
           }
-        } catch (_) {
-          // Network error: keep and pause
-          break;
         }
-      }
 
-      await _saveItems(prefs, remaining);
-      ref.read(recentProvider.notifier).refresh();
+        await _saveItems(prefs, remaining);
+        ref.read(recentProvider.notifier).refresh();
+      } while (_needsAnotherFlush);
     } finally {
       _isFlushing = false;
     }

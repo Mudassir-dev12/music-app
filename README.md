@@ -1,4 +1,4 @@
-# Melodia — Self-Hosted Music App (Phase 2)
+# Melodia — Self-Hosted Music App (Phase 3)
 
 > **Windows development notice:** This project is developed on Windows. The Flutter client is in `client/`. The FastAPI backend is in `backend/`. Use `python` (not `python3`) on Windows.
 
@@ -9,6 +9,17 @@
 Melodia is a self-hosted music streaming application running entirely on our own server (no Supabase or external backend-as-a-service).
 - **Phase 1:** FastAPI backend (`backend/`), SQLite + Alembic, Argon2id accounts, HS256 JWT + rotating SHA-256 refresh tokens, `ytmusicapi` search/track metadata behind `MusicSource`, `yt-dlp` + `httpx` Range audio proxy, Redis/memory cache, per-user rate limit, bandwidth guard, and online SQLite backup CLI.
 - **Phase 2:** Signed short-lived audio tickets (`POST /audio/{video_id}/ticket`), Flutter client (`client/`) with Apple Music-style design system, Riverpod state management, go_router navigation, just_audio + audio_service player, responsive phone/tablet/desktop layouts, full Now Playing + Queue panel, and theme selector.
+- **Phase 3:** User data (no sign-in version) — Play history, likes, playlists, Library, Liked Songs, History, Settings screen, offline history outbox with pure-Dart RFC-4122 v4 UUID generator, and silent login via `SilentAuthStrategy` with release-mode safety guard.
+
+---
+
+## Security & Silent Login Notice (Phase 3–7)
+
+During active development phases (Phases 3–7), interactive sign-in screens are paused to accelerate feature development.
+- **The backend remains strictly multi-user and token-authenticated.** Every table is keyed by `user_id`, and endpoints enforce resource ownership (returning 404 for resources owned by others). **There is NO auth-bypass switch.**
+- The client authenticates silently as a built-in account via `SilentAuthStrategy` using values supplied through `--dart-define` or `client/dart_defines.json` (which is **strictly gitignored**).
+- **Safety Guard:** Release builds will refuse to start with `SilentAuthStrategy` unless explicitly opted-in with `--dart-define=ALLOW_SILENT_LOGIN_IN_RELEASE=true`.
+- **Public Deployment Warning:** Never deploy release builds containing hardcoded `--dart-define` credentials to a publicly accessible server. Anyone with access to the client binary/web bundle could extract the compiled-in credentials. Multi-user sign-in screens and public account management return in Phase 8.
 
 ---
 
@@ -189,6 +200,45 @@ client/
 | `STREAM_URL_TTL` | `3000` | Cached upstream stream URL TTL in seconds |
 | `SEARCH_TTL` | `900` | Cached search results TTL in seconds |
 | `META_TTL` | `86400` | Cached track metadata TTL in seconds |
+| `MAX_PLAYLISTS_PER_USER` | `200` | Maximum playlists a user can create (`403` on limit) |
+| `MAX_TRACKS_PER_PLAYLIST` | `5000` | Maximum tracks per playlist (`403` on limit) |
+| `HISTORY_MAX_ITEMS_PER_USER` | `10000` | Play history items retained per user |
+| `HISTORY_RETENTION_DAYS` | `365` | Play history retention period in days |
+
+---
+
+## API Endpoints (Phase 3)
+
+All `/me/*` routes require a valid Bearer access token (`Authorization: Bearer <access_token>`).
+
+### History
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/me/history` | Record played track with `client_event_id` idempotency, auto-creates track metadata cache |
+| `GET` | `/me/history` | Cursor-paginated listening history (`?limit=50&cursor=...`) |
+| `GET` | `/me/recent` | Distinct recent tracks (`?limit=20`) |
+| `DELETE` | `/me/history/{id}` | Delete a single history item |
+| `DELETE` | `/me/history` | Clear entire listening history |
+
+### Likes
+| Method | Path | Description |
+|---|---|---|
+| `PUT` | `/me/likes/{video_id}` | Like a track (creates track metadata cache if provided in body) |
+| `DELETE` | `/me/likes/{video_id}` | Unlike a track |
+| `GET` | `/me/likes` | Cursor-paginated liked tracks (`?limit=50&cursor=...`) |
+| `GET` | `/me/likes/ids` | All liked video IDs for quick client-side heart state |
+
+### Playlists
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/me/playlists` | Create a playlist (`name`, optional `description`) |
+| `GET` | `/me/playlists` | List user's playlists with computed `track_count`, `duration_seconds`, `cover_thumbnails` |
+| `GET` | `/me/playlists/{id}` | Get playlist detail with cursor-paginated tracks |
+| `PATCH` | `/me/playlists/{id}` | Update playlist name or description |
+| `DELETE` | `/me/playlists/{id}` | Delete playlist |
+| `POST` | `/me/playlists/{id}/tracks` | Append tracks to playlist (`video_ids: List[str]`, duplicates ignored) |
+| `DELETE` | `/me/playlists/{id}/tracks/{video_id}` | Remove track from playlist and renumber positions |
+| `PUT` | `/me/playlists/{id}/tracks/reorder` | Reorder playlist tracks (`video_ids: List[str]` in new order) |
 
 ---
 
@@ -266,5 +316,36 @@ Audio extraction from YouTube is intended strictly for private/educational use a
    flutter build apk --release --dart-define=API_URL=http://your-server:8610
    ```
    Test background playback, lock-screen metadata, and remote controls on a physical device.
-10. **Change application ID before publishing:**
-    The bundle ID is currently `app.melodia`. Before publishing to Google Play or the App Store, update it to your own reverse-domain ID in `client/android/app/build.gradle` and `client/ios/Runner.xcodeproj/project.pbxproj`.
+11. **Phase 3 VPS Database Migration & Upgrade:**
+    When deploying Phase 3 to your VPS:
+    ```bash
+    # 1. Stop backend service
+    sudo systemctl stop melodia-backend  # or your service manager
+
+    # 2. Backup existing database
+    cd /home/music/app/backend
+    .venv/bin/python -m app.tools.backup
+
+    # 3. Pull latest code
+    git pull origin main
+
+    # 4. Run database migration (0002_user_data)
+    .venv/bin/alembic upgrade head
+
+    # 5. Restart backend service
+    sudo systemctl start melodia-backend
+    ```
+12. **Phase 3 Client Silent Login Setup:**
+    Create `client/dart_defines.json` (strictly gitignored) based on `client/dart_defines.example.json`:
+    ```json
+    {
+      "API_URL": "http://127.0.0.1:8610",
+      "APP_NAME": "Melodia",
+      "LOCAL_EMAIL": "your-account@example.com",
+      "LOCAL_PASSWORD": "YourStrongPassword123!"
+    }
+    ```
+    Then run with:
+    ```powershell
+    flutter run -d windows --dart-define-from-file=dart_defines.json
+    ```

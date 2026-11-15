@@ -264,7 +264,7 @@ class LibraryScreen extends ConsumerWidget {
                                   aspectRatio: 1.0,
                                   child: MosaicCover(
                                     coverThumbnails: pl.coverThumbnails,
-                                    size: double.infinity,
+                                    size: 180,
                                   ),
                                 ),
                                 const SizedBox(height: MelodiaTokens.spacingSm),

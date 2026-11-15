@@ -38,6 +38,7 @@ class MosaicCover extends StatelessWidget {
   Widget _buildArtwork(MelodiaTokens tokens) {
     // 1. Liked Songs heart gradient
     if (isLikedSongs) {
+      final heartSize = size.isFinite ? size * 0.45 : 54.0;
       return Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -53,7 +54,7 @@ class MosaicCover extends StatelessWidget {
           child: Icon(
             Icons.favorite_rounded,
             color: tokens.text,
-            size: size * 0.45,
+            size: heartSize,
           ),
         ),
       );
@@ -61,13 +62,14 @@ class MosaicCover extends StatelessWidget {
 
     // 2. Empty placeholder
     if (coverThumbnails.isEmpty) {
+      final iconSize = size.isFinite ? size * 0.4 : 48.0;
       return Container(
         color: tokens.surface2,
         child: Center(
           child: Icon(
             Icons.music_note_rounded,
             color: tokens.textTertiary,
-            size: size * 0.4,
+            size: iconSize,
           ),
         ),
       );
