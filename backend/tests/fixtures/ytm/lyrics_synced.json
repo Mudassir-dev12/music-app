@@ -1,0 +1,10 @@
+{
+  "timed": true,
+  "source": "Musixmatch",
+  "lines": [
+    { "text": "Is this the real life?", "start": 0 },
+    { "text": "Is this just fantasy?", "start": 3500 },
+    { "text": "Caught in a landslide", "start": 8200 },
+    { "text": "No escape from reality", "start": 12100 }
+  ]
+}

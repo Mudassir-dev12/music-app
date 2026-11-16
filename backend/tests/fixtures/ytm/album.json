@@ -1,0 +1,481 @@
+{
+  "title": "1989",
+  "type": "Album",
+  "thumbnails": [
+    {
+      "url": "https://yt3.googleusercontent.com/-jaWr9K7U0bJoqMv50tihlvf1QXe_y-dmvw_z_40gA9bPj4PhfRPobOdQndQIoCxsFDWRyEoP0Rben8=w60-h60-l90-rj",
+      "width": 60,
+      "height": 60
+    },
+    {
+      "url": "https://yt3.googleusercontent.com/-jaWr9K7U0bJoqMv50tihlvf1QXe_y-dmvw_z_40gA9bPj4PhfRPobOdQndQIoCxsFDWRyEoP0Rben8=w120-h120-l90-rj",
+      "width": 120,
+      "height": 120
+    },
+    {
+      "url": "https://yt3.googleusercontent.com/-jaWr9K7U0bJoqMv50tihlvf1QXe_y-dmvw_z_40gA9bPj4PhfRPobOdQndQIoCxsFDWRyEoP0Rben8=w226-h226-l90-rj",
+      "width": 226,
+      "height": 226
+    },
+    {
+      "url": "https://yt3.googleusercontent.com/-jaWr9K7U0bJoqMv50tihlvf1QXe_y-dmvw_z_40gA9bPj4PhfRPobOdQndQIoCxsFDWRyEoP0Rben8=w544-h544-l90-rj",
+      "width": 544,
+      "height": 544
+    }
+  ],
+  "isExplicit": false,
+  "description": "1989 is the fifth studio album by the American singer-songwriter Taylor Swift. It was released on October 27, 2014, through Big Machine Records. Titled after Swift's birth year as a symbolic rebirth, the album recalibrated her artistic identity from country music to pop.\nSwift produced 1989 with Max Martin, Shellback, Jack Antonoff, Ryan Tedder, Nathan Chapman, and Imogen Heap. Its 1980s-inspired synth-pop production incorporates dense synthesizers, programmed drum machines, and processed electronic backing vocals, abandoning the acoustic arrangements that had characterized Swift's past albums. The songs chronicle the aftermath of a failed relationship with lyrics that expand on Swift's autobiographical details; they depict heartbreak, recovery, and self-discovery from lighthearted, wistful, and nostalgic perspectives.\n1989 was promoted with the 1989 World Tour, the highest-grossing concert tour of 2015. Its seven singles included the US Billboard Hot 100 number-ones \"Shake It Off\", \"Blank Space\", and \"Bad Blood\", and the top-ten entries \"Style\" and \"Wildest Dreams\".\n\nFrom Wikipedia (https://en.wikipedia.org/wiki/1989_(a...) under Creative Commons Attribution CC-BY-SA 3.0 (https://creativecommons.org/licenses/...)",
+  "descriptionRuns": [
+    {
+      "text": "1989 is the fifth studio album by the American singer-songwriter Taylor Swift. It was released on October 27, 2014, through Big Machine Records. Titled after Swift's birth year as a symbolic rebirth, the album recalibrated her artistic identity from country music to pop.\nSwift produced 1989 with Max Martin, Shellback, Jack Antonoff, Ryan Tedder, Nathan Chapman, and Imogen Heap. Its 1980s-inspired synth-pop production incorporates dense synthesizers, programmed drum machines, and processed electronic backing vocals, abandoning the acoustic arrangements that had characterized Swift's past albums. The songs chronicle the aftermath of a failed relationship with lyrics that expand on Swift's autobiographical details; they depict heartbreak, recovery, and self-discovery from lighthearted, wistful, and nostalgic perspectives.\n1989 was promoted with the 1989 World Tour, the highest-grossing concert tour of 2015. Its seven singles included the US Billboard Hot 100 number-ones \"Shake It Off\", \"Blank Space\", and \"Bad Blood\", and the top-ten entries \"Style\" and \"Wildest Dreams\".\n\nFrom Wikipedia ("
+    },
+    {
+      "text": "https://en.wikipedia.org/wiki/1989_(a...",
+      "url": "https://en.wikipedia.org/wiki/1989_(album)"
+    },
+    {
+      "text": ") under Creative Commons Attribution CC-BY-SA 3.0 ("
+    },
+    {
+      "text": "https://creativecommons.org/licenses/...",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/legalcode"
+    },
+    {
+      "text": ")"
+    }
+  ],
+  "year": "2014",
+  "artists": [
+    {
+      "name": "Taylor Swift",
+      "id": "UCPC0L1d253x-KuMNwa05TpA"
+    }
+  ],
+  "trackCount": 13,
+  "duration": "48 minutes",
+  "audioPlaylistId": "OLAK5uy_n8mGmmk-aCPt9QQ9dOLQAHj0fDa7bBuLA",
+  "likeStatus": "INDIFFERENT",
+  "tracks": [
+    {
+      "videoId": "FsGdznlfE2U",
+      "title": "Welcome To New York",
+      "artists": [
+        {
+          "name": "Taylor Swift",
+          "id": "UCPC0L1d253x-KuMNwa05TpA"
+        }
+      ],
+      "album": "1989",
+      "likeStatus": "INDIFFERENT",
+      "inLibrary": false,
+      "pinnedToListenAgain": false,
+      "feedbackTokens": {
+        "add": null,
+        "remove": "AB9zfpK3-_c2UJp2gkzG7SUrHZrInHu0o_6ZMua5hGEoPIFxN3LhzVe9VHAi7fnpPHkXhusX_9NOCbXuSw3b73Mng6CNCa_TYQ"
+      },
+      "thumbnails": null,
+      "isAvailable": true,
+      "isExplicit": false,
+      "videoType": "MUSIC_VIDEO_TYPE_OMV",
+      "views": "100M plays",
+      "communityVoteStatus": null,
+      "trackNumber": 1,
+      "duration": "3:33",
+      "duration_seconds": 213,
+      "creditsBrowseId": "MPTCw1HU24bNbX8"
+    },
+    {
+      "videoId": "e-ORhEE9VVg",
+      "title": "Blank Space",
+      "artists": [
+        {
+          "name": "Taylor Swift",
+          "id": "UCPC0L1d253x-KuMNwa05TpA"
+        }
+      ],
+      "album": "1989",
+      "likeStatus": "INDIFFERENT",
+      "inLibrary": false,
+      "pinnedToListenAgain": false,
+      "feedbackTokens": {
+        "add": null,
+        "remove": "AB9zfpIyRGEiGqlHQxIEg1Nu61ZUDOn0j2kDw2D_5AkYBiWPcsWMcjeVf1KqfFYwM1nTJVbgd7lnAsvjL7hT7jYbCrATI-874A"
+      },
+      "thumbnails": null,
+      "isAvailable": true,
+      "isExplicit": false,
+      "videoType": "MUSIC_VIDEO_TYPE_OMV",
+      "views": "4.5B plays",
+      "communityVoteStatus": null,
+      "trackNumber": 2,
+      "duration": "3:52",
+      "duration_seconds": 232,
+      "creditsBrowseId": "MPTCE47fCYw6EGk"
+    },
+    {
+      "videoId": "-CmadmM5cOk",
+      "title": "Style",
+      "artists": [
+        {
+          "name": "Taylor Swift",
+          "id": "UCPC0L1d253x-KuMNwa05TpA"
+        }
+      ],
+      "album": "1989",
+      "likeStatus": "INDIFFERENT",
+      "inLibrary": false,
+      "pinnedToListenAgain": false,
+      "feedbackTokens": {
+        "add": null,
+        "remove": "AB9zfpIpY_DKwPOHTgY-32rOyyVod75KM-xh91xp74IyLtItAuj4PjXQ-NGlHm-3_AP1VCu8CB5lhB-_OODnA8KNJY8OTIQkGg"
+      },
+      "thumbnails": null,
+      "isAvailable": true,
+      "isExplicit": false,
+      "videoType": "MUSIC_VIDEO_TYPE_OMV",
+      "views": "1.3B plays",
+      "communityVoteStatus": null,
+      "trackNumber": 3,
+      "duration": "3:51",
+      "duration_seconds": 231,
+      "creditsBrowseId": "MPTCoGA3aHWBO0I"
+    },
+    {
+      "videoId": "JLf9q36UsBk",
+      "title": "Out Of The Woods",
+      "artists": [
+        {
+          "name": "Taylor Swift",
+          "id": "UCPC0L1d253x-KuMNwa05TpA"
+        }
+      ],
+      "album": "1989",
+      "likeStatus": "INDIFFERENT",
+      "inLibrary": false,
+      "pinnedToListenAgain": false,
+      "feedbackTokens": {
+        "add": null,
+        "remove": "AB9zfpKvqmVQiStme9gFGjpmqFIuV3LdJVeEq1eYSBz4Nu2vtQd7asrGPFbe3k1rNRYBqXzULOBq0lLhfT-G2YMmvoZQQ5VxaQ"
+      },
+      "thumbnails": null,
+      "isAvailable": true,
+      "isExplicit": false,
+      "videoType": "MUSIC_VIDEO_TYPE_OMV",
+      "views": "252M plays",
+      "communityVoteStatus": null,
+      "trackNumber": 4,
+      "duration": "3:56",
+      "duration_seconds": 236,
+      "creditsBrowseId": "MPTCFXj6yqKjTog"
+    }
+  ],
+  "other_versions": [
+    {
+      "title": "1989 (Deluxe)",
+      "artists": [
+        {
+          "id": "UCPC0L1d253x-KuMNwa05TpA",
+          "name": "Taylor Swift"
+        }
+      ],
+      "browseId": "MPREb_JiAQrbUtBdP",
+      "audioPlaylistId": "OLAK5uy_mtnHS42OzbtQ7iSxEDnTcbrwfEAW85ano",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/GcrDhHXqrPm4BjS-4L1c0OHC9iz0ZxmFeRur2A6Aqo9Vm7OfFCBOSVbRzp1M1D1s_3rsvKaC7w6kku0=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/GcrDhHXqrPm4BjS-4L1c0OHC9iz0ZxmFeRur2A6Aqo9Vm7OfFCBOSVbRzp1M1D1s_3rsvKaC7w6kku0=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Album"
+    },
+    {
+      "title": "1989 (Big Machine Radio Release Special)",
+      "artists": [
+        {
+          "id": "UCPC0L1d253x-KuMNwa05TpA",
+          "name": "Taylor Swift"
+        }
+      ],
+      "browseId": "MPREb_FqCrQJ3iwcD",
+      "audioPlaylistId": "OLAK5uy_knugp3pcdtuz6Oil8vBHX9V5PkpVCnnK0",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/UuUpzrM6voF9aFqr9RLTbL7bmpmw46yMTyyYi0CUkjz5y5AqtQEkXw6yaKuUSV2mV4ukpLMBLV90PWND=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/UuUpzrM6voF9aFqr9RLTbL7bmpmw46yMTyyYi0CUkjz5y5AqtQEkXw6yaKuUSV2mV4ukpLMBLV90PWND=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Album"
+    }
+  ],
+  "related_recommendations": [
+    {
+      "title": "Fearless (Taylor's Version)",
+      "artists": [
+        {
+          "id": "UCPC0L1d253x-KuMNwa05TpA",
+          "name": "Taylor Swift"
+        }
+      ],
+      "browseId": "MPREb_W8Sz9ZLayFV",
+      "audioPlaylistId": "OLAK5uy_mGRDKgRDJtrpyw25zrYD7Rl56ACL1Oiy8",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/huIYugJjpimikk-tSDJyDU09Jr8vDVJuLOh5uGG6T45c5MEtYvFW_9NlqkHHSaLl231kLBgAS8rtDfQ=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/huIYugJjpimikk-tSDJyDU09Jr8vDVJuLOh5uGG6T45c5MEtYvFW_9NlqkHHSaLl231kLBgAS8rtDfQ=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Album"
+    },
+    {
+      "title": "So Close",
+      "artists": [
+        {
+          "id": "UCCo-MSR5We_ir-3wuxNmlUw",
+          "name": "Jennette McCurdy"
+        }
+      ],
+      "browseId": "MPREb_QmP0ZGF7WyA",
+      "audioPlaylistId": "OLAK5uy_mHnpRsmCHPKznnTZ8untaa2eAQHE86-cY",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/6U_JkcyUMON-goTh14AZG6MjquRm5ERIAsWr_AC0S4Lu5x-D5TO748TsgjZdF2f6fj_EFfoVWAAKYOo=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/6U_JkcyUMON-goTh14AZG6MjquRm5ERIAsWr_AC0S4Lu5x-D5TO748TsgjZdF2f6fj_EFfoVWAAKYOo=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Single"
+    },
+    {
+      "title": "Who You Are (Platinum Edition)",
+      "artists": [
+        {
+          "id": "UCFIwgbSgHjfiK8mz7VE0g7Q",
+          "name": "Jessie J"
+        }
+      ],
+      "browseId": "MPREb_l6QoinFBYNc",
+      "audioPlaylistId": "OLAK5uy_lZ9KpGV8x5lf2C2eDmGodIqzpg0g4_jYs",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/jFMpBjeH8NI0_NVxLL0opOJNHknENYdDes-6cfmSOzocGiLanvfiG1q2UXFjUOPPQ3xS4awmjaYQVoMvKQ=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/jFMpBjeH8NI0_NVxLL0opOJNHknENYdDes-6cfmSOzocGiLanvfiG1q2UXFjUOPPQ3xS4awmjaYQVoMvKQ=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": true,
+      "type": "Album"
+    },
+    {
+      "title": "Water Under the Bridge",
+      "artists": [
+        {
+          "id": "UCRw0x9_EfawqmgDI2IgQLLg",
+          "name": "Adele"
+        }
+      ],
+      "browseId": "MPREb_hwaQ5023E5S",
+      "audioPlaylistId": "OLAK5uy_kCcjSx4rPqf31XPMnhRYJ66ftKpbiC-Xo",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/wan00ffLTzNs4iPsPf58yly7o7tJv5EEeBIJKAtgrTGtiJOV_W4d1agBb0ZnI5zCSGH9OhbDCvfNRxFU=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/wan00ffLTzNs4iPsPf58yly7o7tJv5EEeBIJKAtgrTGtiJOV_W4d1agBb0ZnI5zCSGH9OhbDCvfNRxFU=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Single"
+    },
+    {
+      "title": "I Stand",
+      "artists": [
+        {
+          "id": "UC2kPe8FB39lojsUDtyKcqOQ",
+          "name": "Idina Menzel"
+        }
+      ],
+      "browseId": "MPREb_PyXd2e1hLb3",
+      "audioPlaylistId": "OLAK5uy_mLwMpSaR1ff29pRYQdFRItVKfraakw9G4",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/Y5scf5zui3T8GlN69HESTx7ttTSbDts5YEz01Ku8c42RV6l7laJF_0AYCY7vfCvIPQMCeZkK7Ep-lIw=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/Y5scf5zui3T8GlN69HESTx7ttTSbDts5YEz01Ku8c42RV6l7laJF_0AYCY7vfCvIPQMCeZkK7Ep-lIw=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Album"
+    },
+    {
+      "title": "Remember (Acoustic)",
+      "artists": [
+        {
+          "id": "UCqUQ-LDtna5Bc-dfu6WkufA",
+          "name": "Becky Hill"
+        },
+        {
+          "id": "UCh-4c1ZoBPNP1C8c-7iVvUQ",
+          "name": "David Guetta"
+        }
+      ],
+      "browseId": "MPREb_t85XTapbJ3Z",
+      "audioPlaylistId": "OLAK5uy_kTRgsBFaTH-PMqHCKrtLPfAinV9R4JQ2M",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/-MRbK30gQUfK5hr5Fy1XsmQ6shu3LIX34cNLrs6TAPWDAwfZY4RCJPjlfCimO6yG2b8bZGbaHQUvr5k=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/-MRbK30gQUfK5hr5Fy1XsmQ6shu3LIX34cNLrs6TAPWDAwfZY4RCJPjlfCimO6yG2b8bZGbaHQUvr5k=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Single"
+    },
+    {
+      "title": "Above The Noise",
+      "artists": [
+        {
+          "id": "UCDM16lfBmpZmyfMAOX9INWw",
+          "name": "McFly"
+        }
+      ],
+      "browseId": "MPREb_ZLZZo9wORuQ",
+      "audioPlaylistId": "OLAK5uy_nTJU1Ve9StxX4VEG71GIbrYb7fBebunBg",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/Lb0svKlyRA3FP9a-_8B3ZmBI9UTTbTtbKhUwnqxDPgx6sMuL0SrTy6BDMdlNw6qm2uQVj2LIk4zuPGKY=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/Lb0svKlyRA3FP9a-_8B3ZmBI9UTTbTtbKhUwnqxDPgx6sMuL0SrTy6BDMdlNw6qm2uQVj2LIk4zuPGKY=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Album"
+    },
+    {
+      "title": "Mamma Mia! The Movie Soundtrack",
+      "artists": [
+        {
+          "id": "UC123ds1rdkjzNxeIZJ_JJZQ",
+          "name": "Cast of Mamma Mia! The Movie"
+        }
+      ],
+      "browseId": "MPREb_czAfrCUumIY",
+      "audioPlaylistId": "OLAK5uy_k1aDodGTtmQ3xrV6W2bUdB3i2tQPMSako",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/ZLEKw_yqLym-cTLT2MOrAbKzS94wsQOuZ68UXNzRstUu7PMLOZuN_S5Xcz8QDKot70Z3QU7GPZdiA6o=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/ZLEKw_yqLym-cTLT2MOrAbKzS94wsQOuZ68UXNzRstUu7PMLOZuN_S5Xcz8QDKot70Z3QU7GPZdiA6o=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Album"
+    },
+    {
+      "title": "Places",
+      "artists": [
+        {
+          "id": "UChT5mw6w2oUUhixUAdF5huw",
+          "name": "Lea Michele"
+        }
+      ],
+      "browseId": "MPREb_UToIeiHkSmF",
+      "audioPlaylistId": "OLAK5uy_lps067IjI75Aq0xIErxrEf8E1zELiJcbo",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/ml3ntr5QrIiqYrwctLQKwTQ2ER4cKP7BUhd9zMAJSU755oyvjJ-8TR_PMLo0X7X5n4tHcVRjzYE9LrGk=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/ml3ntr5QrIiqYrwctLQKwTQ2ER4cKP7BUhd9zMAJSU755oyvjJ-8TR_PMLo0X7X5n4tHcVRjzYE9LrGk=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Album"
+    },
+    {
+      "title": "English Rain",
+      "artists": [
+        {
+          "id": "UCmosdTllvZCyIii6qQVqLuQ",
+          "name": "Gabrielle Aplin"
+        }
+      ],
+      "browseId": "MPREb_cJtn04zOCMq",
+      "audioPlaylistId": "OLAK5uy_m8IZRYAYzhMTOjkDZGSYnURs_hyElWNMI",
+      "thumbnails": [
+        {
+          "url": "https://yt3.googleusercontent.com/LFMm9GJdvQrklZim1KgocG2VEV_un3HRiOD-gkqxcXvXAzhTuXkEcf8MO5nnFAyrl2DYnkEJW7BDfj4_=w226-h226-s-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/LFMm9GJdvQrklZim1KgocG2VEV_un3HRiOD-gkqxcXvXAzhTuXkEcf8MO5nnFAyrl2DYnkEJW7BDfj4_=w544-h544-s-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "isExplicit": false,
+      "type": "Album"
+    }
+  ],
+  "duration_seconds": 2933
+}

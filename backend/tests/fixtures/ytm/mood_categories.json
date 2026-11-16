@@ -1,0 +1,30 @@
+{
+  "Moods & moments": [
+    {
+      "title": "Chill",
+      "params": "ggMPOg1uX1JOQWZFeDByc2Jm"
+    },
+    {
+      "title": "Commute",
+      "params": "ggMPOg1uX044Z2o5WERLckpU"
+    },
+    {
+      "title": "Energize",
+      "params": "ggMPOg1uX2lRZUZiMnNrQnJW"
+    }
+  ],
+  "Genres": [
+    {
+      "title": "African",
+      "params": "ggMPOg1uX0UzWGxlRE5jMDVk"
+    },
+    {
+      "title": "Arabic",
+      "params": "ggMPOg1uX3VOQWxsblVZTFNE"
+    },
+    {
+      "title": "Bengali",
+      "params": "ggMPOg1uX1ZEZzBvYUp0TGNI"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "category": "Artists",
+    "resultType": "artist",
+    "artist": "Daft Punk",
+    "shuffleId": "RDAOni3jl65KF37F9JYsJM8DGg",
+    "radioId": "RDEMni3jl65KF37F9JYsJM8DGg",
+    "browseId": "UCRr1xG_2WIDs18a6cIiCxeA",
+    "thumbnails": [
+      {
+        "url": "https://lh3.googleusercontent.com/qLhu6Py_4_xoBsoubKQsXlhOQGqU9YU1ZRAbFusF0LlrPkXbbpu7bEh-k_ZtE4JwLgubvucAQqcK1hRk=w60-h60-p-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://lh3.googleusercontent.com/qLhu6Py_4_xoBsoubKQsXlhOQGqU9YU1ZRAbFusF0LlrPkXbbpu7bEh-k_ZtE4JwLgubvucAQqcK1hRk=w120-h120-p-l90-rj",
+        "width": 120,
+        "height": 120
+      }
+    ]
+  },
+  {
+    "category": "Artists",
+    "resultType": "artist",
+    "artist": "The Weeknd",
+    "shuffleId": "RDAOHSpo_Uv9STIRtF73zMywLg",
+    "radioId": "RDEMHSpo_Uv9STIRtF73zMywLg",
+    "browseId": "UClYV6hHlupm_S_ObS1W-DYw",
+    "thumbnails": [
+      {
+        "url": "https://lh3.googleusercontent.com/U-SAmNOu4TynE818gLCfKsuHZ0U5YNEtO9mrjSI9WCCKERs98LzrCal5kajBBTQNwdcisoB2Bn-pHp4=w60-h60-p-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://lh3.googleusercontent.com/U-SAmNOu4TynE818gLCfKsuHZ0U5YNEtO9mrjSI9WCCKERs98LzrCal5kajBBTQNwdcisoB2Bn-pHp4=w120-h120-p-l90-rj",
+        "width": 120,
+        "height": 120
+      }
+    ]
+  },
+  {
+    "category": "Artists",
+    "resultType": "artist",
+    "artist": "Pharrell",
+    "shuffleId": "RDAO_6oDXbk7AC3eLw4RBn9IIg",
+    "radioId": "RDEM_6oDXbk7AC3eLw4RBn9IIg",
+    "browseId": "UCJw8VyO6e3v6S0327AsgwcQ",
+    "thumbnails": [
+      {
+        "url": "https://lh3.googleusercontent.com/4tfdSY9xKgidwJ8GwVmiKAFMfSAW-5TEXCy78ATFMzXjg57kXNx_pmLCuJafVE8R3wGkhxquy0np5Ok=w60-h60-p-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://lh3.googleusercontent.com/4tfdSY9xKgidwJ8GwVmiKAFMfSAW-5TEXCy78ATFMzXjg57kXNx_pmLCuJafVE8R3wGkhxquy0np5Ok=w120-h120-p-l90-rj",
+        "width": 120,
+        "height": 120
+      }
+    ]
+  }
+]

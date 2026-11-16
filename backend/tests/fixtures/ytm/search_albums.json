@@ -1,0 +1,119 @@
+[
+  {
+    "category": "Albums",
+    "resultType": "album",
+    "title": "1989",
+    "type": "Album",
+    "playlistId": "OLAK5uy_n8mGmmk-aCPt9QQ9dOLQAHj0fDa7bBuLA",
+    "duration": null,
+    "year": "2014",
+    "artists": [
+      {
+        "name": "Taylor Swift",
+        "id": "UCPC0L1d253x-KuMNwa05TpA"
+      }
+    ],
+    "browseId": "MPREb_K9GL6DCDUCq",
+    "isExplicit": false,
+    "thumbnails": [
+      {
+        "url": "https://yt3.googleusercontent.com/-jaWr9K7U0bJoqMv50tihlvf1QXe_y-dmvw_z_40gA9bPj4PhfRPobOdQndQIoCxsFDWRyEoP0Rben8=w60-h60-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/-jaWr9K7U0bJoqMv50tihlvf1QXe_y-dmvw_z_40gA9bPj4PhfRPobOdQndQIoCxsFDWRyEoP0Rben8=w120-h120-l90-rj",
+        "width": 120,
+        "height": 120
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/-jaWr9K7U0bJoqMv50tihlvf1QXe_y-dmvw_z_40gA9bPj4PhfRPobOdQndQIoCxsFDWRyEoP0Rben8=w226-h226-l90-rj",
+        "width": 226,
+        "height": 226
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/-jaWr9K7U0bJoqMv50tihlvf1QXe_y-dmvw_z_40gA9bPj4PhfRPobOdQndQIoCxsFDWRyEoP0Rben8=w544-h544-l90-rj",
+        "width": 544,
+        "height": 544
+      }
+    ]
+  },
+  {
+    "category": "Albums",
+    "resultType": "album",
+    "title": "1989 (Taylor's Version)",
+    "type": "Album",
+    "playlistId": "OLAK5uy_ncKvykObOe16WxrmZEAlCbWBRZm2Utaqk",
+    "duration": null,
+    "year": "2023",
+    "artists": [
+      {
+        "name": "Taylor Swift",
+        "id": "UCPC0L1d253x-KuMNwa05TpA"
+      }
+    ],
+    "browseId": "MPREb_5XXbjpMgJar",
+    "isExplicit": false,
+    "thumbnails": [
+      {
+        "url": "https://yt3.googleusercontent.com/gj8tAERbPzlAoLI6knG2Yv1JiB9kv_pFwckfFHWUS6RcnQonszeMyxTdDEdOxCRNFmMezvwEBeRPwNSy3Q=w60-h60-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/gj8tAERbPzlAoLI6knG2Yv1JiB9kv_pFwckfFHWUS6RcnQonszeMyxTdDEdOxCRNFmMezvwEBeRPwNSy3Q=w120-h120-l90-rj",
+        "width": 120,
+        "height": 120
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/gj8tAERbPzlAoLI6knG2Yv1JiB9kv_pFwckfFHWUS6RcnQonszeMyxTdDEdOxCRNFmMezvwEBeRPwNSy3Q=w226-h226-l90-rj",
+        "width": 226,
+        "height": 226
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/gj8tAERbPzlAoLI6knG2Yv1JiB9kv_pFwckfFHWUS6RcnQonszeMyxTdDEdOxCRNFmMezvwEBeRPwNSy3Q=w544-h544-l90-rj",
+        "width": 544,
+        "height": 544
+      }
+    ]
+  },
+  {
+    "category": "Albums",
+    "resultType": "album",
+    "title": "Red",
+    "type": "Album",
+    "playlistId": null,
+    "duration": null,
+    "year": "2012",
+    "artists": [
+      {
+        "name": "Taylor Swift",
+        "id": "UCPC0L1d253x-KuMNwa05TpA"
+      }
+    ],
+    "browseId": "MPREb_Q4BxBGRu3O2",
+    "isExplicit": false,
+    "thumbnails": [
+      {
+        "url": "https://yt3.googleusercontent.com/Wi2uP1dGCbTVfTH3RDOxOPJiBb2sgXe48T6DG7srLvnNl9JnXbh7ivPbGHEaASI3CxPR419W1sMZH7j02Q=w60-h60-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/Wi2uP1dGCbTVfTH3RDOxOPJiBb2sgXe48T6DG7srLvnNl9JnXbh7ivPbGHEaASI3CxPR419W1sMZH7j02Q=w120-h120-l90-rj",
+        "width": 120,
+        "height": 120
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/Wi2uP1dGCbTVfTH3RDOxOPJiBb2sgXe48T6DG7srLvnNl9JnXbh7ivPbGHEaASI3CxPR419W1sMZH7j02Q=w226-h226-l90-rj",
+        "width": 226,
+        "height": 226
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/Wi2uP1dGCbTVfTH3RDOxOPJiBb2sgXe48T6DG7srLvnNl9JnXbh7ivPbGHEaASI3CxPR419W1sMZH7j02Q=w544-h544-l90-rj",
+        "width": 544,
+        "height": 544
+      }
+    ]
+  }
+]

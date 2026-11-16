@@ -1,0 +1,223 @@
+{
+  "tracks": [
+    {
+      "videoId": "BSTsnWoslP4",
+      "title": "Bohemian Rhapsody",
+      "length": "5:55",
+      "thumbnail": [
+        {
+          "url": "https://yt3.googleusercontent.com/nLn1gxvYiZqzXOY9HyUXVXbFtmR5nhY8sDpbvBT1aw-Ejjsz__Nz90sZoc4nZgff2sf8WjowuVRVBlBTww=w60-h60-l90-rj",
+          "width": 60,
+          "height": 60
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/nLn1gxvYiZqzXOY9HyUXVXbFtmR5nhY8sDpbvBT1aw-Ejjsz__Nz90sZoc4nZgff2sf8WjowuVRVBlBTww=w120-h120-l90-rj",
+          "width": 120,
+          "height": 120
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/nLn1gxvYiZqzXOY9HyUXVXbFtmR5nhY8sDpbvBT1aw-Ejjsz__Nz90sZoc4nZgff2sf8WjowuVRVBlBTww=w180-h180-l90-rj",
+          "width": 180,
+          "height": 180
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/nLn1gxvYiZqzXOY9HyUXVXbFtmR5nhY8sDpbvBT1aw-Ejjsz__Nz90sZoc4nZgff2sf8WjowuVRVBlBTww=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/nLn1gxvYiZqzXOY9HyUXVXbFtmR5nhY8sDpbvBT1aw-Ejjsz__Nz90sZoc4nZgff2sf8WjowuVRVBlBTww=w302-h302-l90-rj",
+          "width": 302,
+          "height": 302
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/nLn1gxvYiZqzXOY9HyUXVXbFtmR5nhY8sDpbvBT1aw-Ejjsz__Nz90sZoc4nZgff2sf8WjowuVRVBlBTww=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "likeStatus": null,
+      "videoType": "MUSIC_VIDEO_TYPE_ATV",
+      "inLibrary": false,
+      "feedbackTokens": null,
+      "pinnedToListenAgain": false,
+      "listenAgainFeedbackTokens": null,
+      "artists": [
+        {
+          "name": "Queen",
+          "id": "UCEPMVbUzImPl4p8k4LkGevA"
+        }
+      ],
+      "album": {
+        "name": "A Night At The Opera",
+        "id": "MPREb_eEpQf8QskKl"
+      },
+      "year": "1975"
+    },
+    {
+      "videoId": "32C0ohT-JFU",
+      "title": "We Are the Champions",
+      "length": "3:00",
+      "thumbnail": [
+        {
+          "url": "https://yt3.googleusercontent.com/roCsbh8gLCe4uWrR7FyELn9Fsu2jDgWPR47Ti7-qTME4nMnKdYRXwTLuEt8tcJUQ1NJK9GaLz7IzObbhJg=w60-h60-l90-rj",
+          "width": 60,
+          "height": 60
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/roCsbh8gLCe4uWrR7FyELn9Fsu2jDgWPR47Ti7-qTME4nMnKdYRXwTLuEt8tcJUQ1NJK9GaLz7IzObbhJg=w120-h120-l90-rj",
+          "width": 120,
+          "height": 120
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/roCsbh8gLCe4uWrR7FyELn9Fsu2jDgWPR47Ti7-qTME4nMnKdYRXwTLuEt8tcJUQ1NJK9GaLz7IzObbhJg=w180-h180-l90-rj",
+          "width": 180,
+          "height": 180
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/roCsbh8gLCe4uWrR7FyELn9Fsu2jDgWPR47Ti7-qTME4nMnKdYRXwTLuEt8tcJUQ1NJK9GaLz7IzObbhJg=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/roCsbh8gLCe4uWrR7FyELn9Fsu2jDgWPR47Ti7-qTME4nMnKdYRXwTLuEt8tcJUQ1NJK9GaLz7IzObbhJg=w302-h302-l90-rj",
+          "width": 302,
+          "height": 302
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/roCsbh8gLCe4uWrR7FyELn9Fsu2jDgWPR47Ti7-qTME4nMnKdYRXwTLuEt8tcJUQ1NJK9GaLz7IzObbhJg=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "likeStatus": null,
+      "videoType": "MUSIC_VIDEO_TYPE_ATV",
+      "inLibrary": false,
+      "feedbackTokens": null,
+      "pinnedToListenAgain": false,
+      "listenAgainFeedbackTokens": null,
+      "artists": [
+        {
+          "name": "Queen",
+          "id": "UCEPMVbUzImPl4p8k4LkGevA"
+        }
+      ],
+      "album": {
+        "name": "News Of The World",
+        "id": "MPREb_wL6nXzC1xOW"
+      },
+      "year": "1977"
+    },
+    {
+      "videoId": "eWiHX_xWa6Y",
+      "title": "Dream On",
+      "length": "4:28",
+      "thumbnail": [
+        {
+          "url": "https://yt3.googleusercontent.com/WpNxQrQVG6M04fACpRstuEb_pqgcgoemV342ny6Lkak2rlSVZaxIqmDR__eFWNl2MxkgdlQVb_7gru8=w60-h60-l90-rj",
+          "width": 60,
+          "height": 60
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/WpNxQrQVG6M04fACpRstuEb_pqgcgoemV342ny6Lkak2rlSVZaxIqmDR__eFWNl2MxkgdlQVb_7gru8=w120-h120-l90-rj",
+          "width": 120,
+          "height": 120
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/WpNxQrQVG6M04fACpRstuEb_pqgcgoemV342ny6Lkak2rlSVZaxIqmDR__eFWNl2MxkgdlQVb_7gru8=w180-h180-l90-rj",
+          "width": 180,
+          "height": 180
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/WpNxQrQVG6M04fACpRstuEb_pqgcgoemV342ny6Lkak2rlSVZaxIqmDR__eFWNl2MxkgdlQVb_7gru8=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/WpNxQrQVG6M04fACpRstuEb_pqgcgoemV342ny6Lkak2rlSVZaxIqmDR__eFWNl2MxkgdlQVb_7gru8=w302-h302-l90-rj",
+          "width": 302,
+          "height": 302
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/WpNxQrQVG6M04fACpRstuEb_pqgcgoemV342ny6Lkak2rlSVZaxIqmDR__eFWNl2MxkgdlQVb_7gru8=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "likeStatus": null,
+      "videoType": "MUSIC_VIDEO_TYPE_ATV",
+      "inLibrary": false,
+      "feedbackTokens": null,
+      "pinnedToListenAgain": false,
+      "listenAgainFeedbackTokens": null,
+      "artists": [
+        {
+          "name": "Aerosmith",
+          "id": "UCYuinPfuhK_rSlrJXvZQrng"
+        }
+      ],
+      "album": {
+        "name": "Aerosmith",
+        "id": "MPREb_5HIwBBDtV1m"
+      },
+      "year": "1973"
+    },
+    {
+      "videoId": "pcXWq5MCelE",
+      "title": "Don't Stop Believin'",
+      "length": "4:10",
+      "thumbnail": [
+        {
+          "url": "https://yt3.googleusercontent.com/qSExXnJ88kbbCA7BsoLCk-hFHIjX2P6yfBmHlo0lVTv8rEf6CSdwUorhdsTK5cXBLPjfUPzd3mFb9wUpzw=w60-h60-l90-rj",
+          "width": 60,
+          "height": 60
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/qSExXnJ88kbbCA7BsoLCk-hFHIjX2P6yfBmHlo0lVTv8rEf6CSdwUorhdsTK5cXBLPjfUPzd3mFb9wUpzw=w120-h120-l90-rj",
+          "width": 120,
+          "height": 120
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/qSExXnJ88kbbCA7BsoLCk-hFHIjX2P6yfBmHlo0lVTv8rEf6CSdwUorhdsTK5cXBLPjfUPzd3mFb9wUpzw=w180-h180-l90-rj",
+          "width": 180,
+          "height": 180
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/qSExXnJ88kbbCA7BsoLCk-hFHIjX2P6yfBmHlo0lVTv8rEf6CSdwUorhdsTK5cXBLPjfUPzd3mFb9wUpzw=w226-h226-l90-rj",
+          "width": 226,
+          "height": 226
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/qSExXnJ88kbbCA7BsoLCk-hFHIjX2P6yfBmHlo0lVTv8rEf6CSdwUorhdsTK5cXBLPjfUPzd3mFb9wUpzw=w302-h302-l90-rj",
+          "width": 302,
+          "height": 302
+        },
+        {
+          "url": "https://yt3.googleusercontent.com/qSExXnJ88kbbCA7BsoLCk-hFHIjX2P6yfBmHlo0lVTv8rEf6CSdwUorhdsTK5cXBLPjfUPzd3mFb9wUpzw=w544-h544-l90-rj",
+          "width": 544,
+          "height": 544
+        }
+      ],
+      "likeStatus": null,
+      "videoType": "MUSIC_VIDEO_TYPE_ATV",
+      "inLibrary": false,
+      "feedbackTokens": null,
+      "pinnedToListenAgain": false,
+      "listenAgainFeedbackTokens": null,
+      "artists": [
+        {
+          "name": "Journey",
+          "id": "UCPKnuPciHDB8qw-wyBVQo9A"
+        }
+      ],
+      "album": {
+        "name": "Coronation Party Songs",
+        "id": "MPREb_Ir11IhGNlGr"
+      },
+      "year": "2023"
+    }
+  ],
+  "playlistId": "RDAMVMBSTsnWoslP4",
+  "lyrics": "MPLYt_eEpQf8QskKl-11",
+  "related": "MPTRt_eEpQf8QskKl-11"
+}

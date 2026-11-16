@@ -1,0 +1,121 @@
+[
+  {
+    "category": "Songs",
+    "resultType": "song",
+    "title": "Bohemian Rhapsody",
+    "album": {
+      "name": "A Night At The Opera",
+      "id": "MPREb_eEpQf8QskKl"
+    },
+    "inLibrary": false,
+    "pinnedToListenAgain": false,
+    "videoId": "BSTsnWoslP4",
+    "videoType": "MUSIC_VIDEO_TYPE_ATV",
+    "isAvailable": true,
+    "duration": "5:55",
+    "year": null,
+    "artists": [
+      {
+        "name": "Queen",
+        "id": "UCEPMVbUzImPl4p8k4LkGevA"
+      }
+    ],
+    "duration_seconds": 355,
+    "views": "2.7B",
+    "isExplicit": false,
+    "thumbnails": [
+      {
+        "url": "https://yt3.googleusercontent.com/nLn1gxvYiZqzXOY9HyUXVXbFtmR5nhY8sDpbvBT1aw-Ejjsz__Nz90sZoc4nZgff2sf8WjowuVRVBlBTww=w60-h60-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/nLn1gxvYiZqzXOY9HyUXVXbFtmR5nhY8sDpbvBT1aw-Ejjsz__Nz90sZoc4nZgff2sf8WjowuVRVBlBTww=w120-h120-l90-rj",
+        "width": 120,
+        "height": 120
+      }
+    ]
+  },
+  {
+    "category": "Songs",
+    "resultType": "song",
+    "title": "Bohemian Rhapsody (Live At Fire Fight Australia, ANZ Stadium, Sydney, Australia, 2020)",
+    "album": {
+      "name": "Live Around The World",
+      "id": "MPREb_9gP7MAwMgdv"
+    },
+    "inLibrary": false,
+    "pinnedToListenAgain": false,
+    "videoId": "1_MF4ewSy94",
+    "videoType": "MUSIC_VIDEO_TYPE_ATV",
+    "isAvailable": true,
+    "duration": "2:21",
+    "year": null,
+    "artists": [
+      {
+        "name": "Queen",
+        "id": "UCEPMVbUzImPl4p8k4LkGevA"
+      },
+      {
+        "name": "Adam Lambert",
+        "id": "UCE0e75AsD74BLP07SfM6OzQ"
+      }
+    ],
+    "duration_seconds": 141,
+    "views": "106K",
+    "isExplicit": false,
+    "thumbnails": [
+      {
+        "url": "https://yt3.googleusercontent.com/KsOw7o1zz_tZ8kp7y0NrFufCYcEwXF73wp9NpbRwSTfRzEGtE-MenlSO4uPQURk308kmUoiiqNhRTYCv=w60-h60-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/KsOw7o1zz_tZ8kp7y0NrFufCYcEwXF73wp9NpbRwSTfRzEGtE-MenlSO4uPQURk308kmUoiiqNhRTYCv=w120-h120-l90-rj",
+        "width": 120,
+        "height": 120
+      }
+    ]
+  },
+  {
+    "category": "Songs",
+    "resultType": "song",
+    "title": "Bohemian Rhapsody x Walk It Talk It",
+    "album": {
+      "name": "Bohemian Rhapsody x Walk It Talk It",
+      "id": "MPREb_fEnzBsOYhvt"
+    },
+    "inLibrary": false,
+    "pinnedToListenAgain": false,
+    "videoId": "_Xsu44ppnFQ",
+    "videoType": "MUSIC_VIDEO_TYPE_ATV",
+    "isAvailable": true,
+    "duration": "1:54",
+    "year": null,
+    "artists": [
+      {
+        "name": "nimphia",
+        "id": "UCmbwsoH423PykuFJk9z5jqw"
+      },
+      {
+        "name": "klyron",
+        "id": "UCxk14i4tCeR23oEyEGrI3bw"
+      }
+    ],
+    "duration_seconds": 114,
+    "views": "67K",
+    "isExplicit": true,
+    "thumbnails": [
+      {
+        "url": "https://yt3.googleusercontent.com/kI4m5PBVbBbp8LxHyvE2J0O5zxcfRTuSXjxcSww--Jv9yoEpdRmHkhRseZVypuDd6i8EKaLT-DTi0UEU=w60-h60-l90-rj",
+        "width": 60,
+        "height": 60
+      },
+      {
+        "url": "https://yt3.googleusercontent.com/kI4m5PBVbBbp8LxHyvE2J0O5zxcfRTuSXjxcSww--Jv9yoEpdRmHkhRseZVypuDd6i8EKaLT-DTi0UEU=w120-h120-l90-rj",
+        "width": 120,
+        "height": 120
+      }
+    ]
+  }
+]
