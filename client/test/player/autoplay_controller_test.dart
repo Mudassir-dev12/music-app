@@ -14,7 +14,7 @@ void main() {
       mockDiscoveryApi = MockDiscoveryApi();
     });
 
-    final seedTrack = const Track(
+    const seedTrack = Track(
       videoId: 'seed_vid',
       title: 'Seed Track',
       artists: [Artist(name: 'Artist A')],
@@ -22,7 +22,7 @@ void main() {
       isExplicit: false,
     );
 
-    final trackInQueue = const Track(
+    const trackInQueue = Track(
       videoId: 'queued_vid',
       title: 'Queued Track',
       artists: [Artist(name: 'Artist B')],
@@ -30,7 +30,7 @@ void main() {
       isExplicit: false,
     );
 
-    final newRadioTrack1 = const Track(
+    const newRadioTrack1 = Track(
       videoId: 'new_radio_1',
       title: 'New Track 1',
       artists: [Artist(name: 'Artist C')],
@@ -38,7 +38,7 @@ void main() {
       isExplicit: false,
     );
 
-    final newRadioTrack2 = const Track(
+    const newRadioTrack2 = Track(
       videoId: 'new_radio_2',
       title: 'New Track 2',
       artists: [Artist(name: 'Artist D')],

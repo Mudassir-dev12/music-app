@@ -1,4 +1,4 @@
-# Melodia — Self-Hosted Music App (Phase 3)
+# Melodia — Self-Hosted Music App (Phase 4)
 
 > **Windows development notice:** This project is developed on Windows. The Flutter client is in `client/`. The FastAPI backend is in `backend/`. Use `python` (not `python3`) on Windows.
 
@@ -10,6 +10,7 @@ Melodia is a self-hosted music streaming application running entirely on our own
 - **Phase 1:** FastAPI backend (`backend/`), SQLite + Alembic, Argon2id accounts, HS256 JWT + rotating SHA-256 refresh tokens, `ytmusicapi` search/track metadata behind `MusicSource`, `yt-dlp` + `httpx` Range audio proxy, Redis/memory cache, per-user rate limit, bandwidth guard, and online SQLite backup CLI.
 - **Phase 2:** Signed short-lived audio tickets (`POST /audio/{video_id}/ticket`), Flutter client (`client/`) with Apple Music-style design system, Riverpod state management, go_router navigation, just_audio + audio_service player, responsive phone/tablet/desktop layouts, full Now Playing + Queue panel, and theme selector.
 - **Phase 3:** User data (no sign-in version) — Play history, likes, playlists, Library, Liked Songs, History, Settings screen, offline history outbox with pure-Dart RFC-4122 v4 UUID generator, and silent login via `SilentAuthStrategy` with release-mode safety guard.
+- **Phase 4:** Discovery — Full search with autocomplete suggestions, grouped results (Top Result card, Songs, Albums, Artists, Playlists) and type filters; Listen Now home feed with Top Picks hero carousel and dynamic shelves; Browse with Charts and dynamic-color Moods/Genres tiles; rich Album, Artist, and public YouTube Playlist screens; synchronized time-synced lyrics with tap-to-seek and plain fallback; seamless autoplay of similar songs; upstream rate-limiting/semaphore with Retry-After backoff.
 
 ---
 
@@ -207,9 +208,24 @@ client/
 
 ---
 
-## API Endpoints (Phase 3)
+## API Endpoints (Phase 4)
 
 All `/me/*` routes require a valid Bearer access token (`Authorization: Bearer <access_token>`).
+
+### Discovery & Search
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/search?q=...&filter=...` | Search catalog. Unfiltered returns `SearchGrouped` (top_result, songs, albums, artists, playlists); `filter=songs\|albums\|artists\|playlists` returns typed items. Server upserts songs. |
+| `GET` | `/search/suggestions?q=...` | Instant query suggestions as user types. |
+| `GET` | `/discover/home` | Listen Now home feed with personalized/trending shelves. |
+| `GET` | `/discover/charts?country=...` | Top songs, top artists, and trending videos. |
+| `GET` | `/discover/moods` | Explore categories and moods grouped by sections. |
+| `GET` | `/discover/moods/{params}` | Curated playlists belonging to a specific mood/genre category. |
+| `GET` | `/albums/{browse_id}` | Album details, release metadata, and tracklist. |
+| `GET` | `/artists/{channel_id}` | Artist avatar, subscriber stats, top songs, discography, and bio. |
+| `GET` | `/ytplaylists/{playlist_id}` | Public YouTube Music curated playlist detail and tracks. |
+| `GET` | `/watch/{video_id}` | Autoplay / radio track recommendations based on a track. |
+| `GET` | `/lyrics/{video_id}` | Timed synchronized lyrics (`lines: [{start_ms, end_ms, text}]`) or plain text lyrics fallback with source credit. |
 
 ### History
 | Method | Path | Description |

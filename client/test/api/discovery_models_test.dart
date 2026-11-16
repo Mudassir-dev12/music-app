@@ -55,7 +55,7 @@ void main() {
         'query': 'coldplay',
         'top_result': {'id': 'art_1', 'type': 'artist', 'title': 'Coldplay'},
         'sections': [
-          {'title': 'Songs', 'items': []},
+          {'title': 'Songs', 'items': <Map<String, dynamic>>[]},
         ],
       };
 
@@ -127,7 +127,7 @@ void main() {
       final plainJson = {
         'video_id': 'vid_plain',
         'plain': 'Just some lyrics',
-        'synced': [],
+        'synced': <Map<String, dynamic>>[],
       };
 
       final plainLyrics = Lyrics.fromJson(plainJson);
