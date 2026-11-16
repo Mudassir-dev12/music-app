@@ -57,7 +57,7 @@ async def test_search_endpoint_caching_and_validation(client: AsyncClient):
     assert r_bad_limit.status_code == 422
 
     # 2. Unsupported filter
-    r_filter = await client.get("/search?q=test&filter=albums", headers=headers)
+    r_filter = await client.get("/search?q=test&filter=invalid", headers=headers)
     assert r_filter.status_code == 422
 
     # 3. Search caching check

@@ -199,6 +199,7 @@ class UpstreamCoordinator:
             raise
         except Exception as first_err:
             logger.warning(f"Upstream call attempt 1 failed: {first_err}. Retrying once...")
+            await asyncio.sleep(1.0)
             try:
                 return await fetcher()
             except HTTPException:

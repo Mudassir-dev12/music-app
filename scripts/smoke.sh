@@ -6,22 +6,38 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # 1. Source environment guard
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/env.sh"
+if [ "$ROOT" != "/var/www/music-app" ] && [ -f "$SCRIPT_DIR/env.local.sh" ]; then
+    source "$SCRIPT_DIR/env.local.sh"
+else
+    source "$SCRIPT_DIR/env.sh"
+fi
+
+if [ -f "$ROOT/backend/.venv/Scripts/python.exe" ]; then
+    PY_BIN="$ROOT/backend/.venv/Scripts/python.exe"
+else
+    PY_BIN="$ROOT/backend/.venv/bin/python3"
+fi
 
 echo "=========================================="
 echo " Starting Melodia Smoke Test with Real Net"
 echo "=========================================="
 
 # 2. Pick a free port
-PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
+PORT=$("$PY_BIN" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
 echo "Selected free port: $PORT"
 
 # 3. Setup temporary throwaway database
+mkdir -p "$ROOT/.tmp"
 TMP_DB="$ROOT/.tmp/smoke_test_$$.db"
-export DATABASE_URL="sqlite+aiosqlite:///$TMP_DB"
+if command -v cygpath >/dev/null 2>&1; then
+    WIN_TMP_DB=$(cygpath -m "$TMP_DB")
+    export DATABASE_URL="sqlite+aiosqlite:///$WIN_TMP_DB"
+else
+    export DATABASE_URL="sqlite+aiosqlite:///$TMP_DB"
+fi
 export APP_ENV="development"
-export APP_JWT_SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(36))')
-export REGISTRATION_INVITE_CODE="INVITE_$(python3 -c 'import secrets; print(secrets.token_hex(6))')"
+export APP_JWT_SECRET=$("$PY_BIN" -c 'import secrets; print(secrets.token_urlsafe(36))')
+export REGISTRATION_INVITE_CODE="INVITE_$("$PY_BIN" -c 'import secrets; print(secrets.token_hex(6))')"
 export REDIS_URL=""
 export DAILY_AUDIO_MB_PER_USER=1500
 export MONTHLY_AUDIO_GB_GLOBAL=1500
@@ -30,14 +46,14 @@ export CORS_ORIGINS="http://localhost:8081"
 echo "Applying Alembic migrations to throwaway database..."
 (
     cd "$ROOT/backend"
-    "$ROOT/backend/.venv/bin/python3" -m alembic upgrade head >/dev/null 2>&1
+    "$PY_BIN" -m alembic upgrade head >/dev/null 2>&1
 )
 
 # 4. Start backend server
 echo "Starting backend server on 127.0.0.1:$PORT..."
 (
     cd "$ROOT/backend"
-    exec "$ROOT/backend/.venv/bin/python3" -m uvicorn app.main:app --host 127.0.0.1 --port "$PORT" --log-level warning
+    exec "$PY_BIN" -m uvicorn app.main:app --host 127.0.0.1 --port "$PORT" --log-level warning
 ) &
 SERVER_PID=$!
 
@@ -68,7 +84,7 @@ fi
 echo "Server is ready. Running checks..."
 
 # Run test runner python script against the live server
-"$ROOT/backend/.venv/bin/python3" - <<EOF
+"$PY_BIN" - <<EOF
 import sys
 import time
 import httpx
@@ -148,9 +164,9 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
 
     auth_headers = {"Authorization": f"Bearer {access_token}"}
 
-    # 6. GET /search?q=believer imagine dragons&limit=5
+    # 6. GET /search?q=believer imagine dragons&filter=songs&limit=5
     t0 = time.perf_counter()
-    r_s1 = client.get("/search?q=believer imagine dragons&limit=5", headers=auth_headers)
+    r_s1 = client.get("/search?q=believer imagine dragons&filter=songs&limit=5", headers=auth_headers)
     dur1 = time.perf_counter() - t0
 
     p_s1 = (r_s1.status_code == 200)
@@ -163,7 +179,7 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
 
     # Repeat search to verify cache speedup
     t1 = time.perf_counter()
-    r_s2 = client.get("/search?q=believer imagine dragons&limit=5", headers=auth_headers)
+    r_s2 = client.get("/search?q=believer imagine dragons&filter=songs&limit=5", headers=auth_headers)
     dur2 = time.perf_counter() - t1
 
     report(6, "GET /search (returns 1-5 results with 11-char ID; second call cached)", 
@@ -281,12 +297,76 @@ with httpx.Client(base_url=base_url, timeout=30.0) as client:
     )
     report(18, "POST /me/history idempotent (201 then 200) & GET /me/recent returns track", p_history)
 
-    # 17. Logout and refresh fails
+    # --- Phase 4 Discovery Checks ---
+    # 17. GET /search/suggestions?q=cold -> 200, suggestions list
+    r_sug = client.get("/search/suggestions?q=cold", headers=auth_headers)
+    p_sug = (r_sug.status_code == 200 and isinstance(r_sug.json().get("suggestions"), list))
+    report(19, "GET /search/suggestions?q=cold -> 200 with suggestions list", p_sug)
+
+    # 18. GET /search?q=coldplay (grouped) -> 200, sections present
+    r_grp = client.get("/search?q=coldplay", headers=auth_headers)
+    p_grp = (r_grp.status_code == 200 and isinstance(r_grp.json().get("sections"), list))
+    report(20, "GET /search?q=coldplay (grouped) -> 200 with sections", p_grp)
+
+    # 19. GET /search?q=coldplay&filter=albums -> 200, results non-empty
+    r_salb = client.get("/search?q=coldplay&filter=albums", headers=auth_headers)
+    p_salb = (r_salb.status_code == 200 and len(r_salb.json().get("results", [])) > 0)
+    first_album_id = r_salb.json()["results"][0]["id"] if (p_salb and r_salb.json()["results"]) else None
+    report(21, "GET /search?q=coldplay&filter=albums -> 200 with results", p_salb)
+
+    # 20. GET /discover/home -> 200, shelves non-empty
+    r_home = client.get("/discover/home", headers=auth_headers)
+    p_home = (r_home.status_code == 200 and len(r_home.json().get("shelves", [])) > 0)
+    report(22, "GET /discover/home -> 200 with shelves", p_home)
+
+    # 21. GET /discover/charts -> 200, shelves non-empty
+    r_charts = client.get("/discover/charts", headers=auth_headers)
+    p_charts = (r_charts.status_code == 200 and len(r_charts.json().get("shelves", [])) > 0)
+    report(23, "GET /discover/charts -> 200 with shelves", p_charts)
+
+    # 22. GET /discover/charts (repeat) -> 200, X-Cache: hit
+    r_charts_hit = client.get("/discover/charts", headers=auth_headers)
+    p_hit = (r_charts_hit.status_code == 200 and r_charts_hit.headers.get("x-cache") == "hit")
+    report(24, "GET /discover/charts (repeat) -> 200 with X-Cache: hit", p_hit)
+
+    # 23. GET /discover/moods -> 200, sections non-empty
+    r_moods = client.get("/discover/moods", headers=auth_headers)
+    p_moods = (r_moods.status_code == 200 and len(r_moods.json().get("sections", [])) > 0)
+    report(25, "GET /discover/moods -> 200 with sections", p_moods)
+
+    # 24. GET /albums/{browse_id} from search result
+    p_alb = True
+    if first_album_id:
+        r_alb = client.get(f"/albums/{first_album_id}", headers=auth_headers)
+        p_alb = (r_alb.status_code == 200 and len(r_alb.json().get("tracks", [])) > 0)
+    report(26, f"GET /albums/{first_album_id} -> 200 with tracks", p_alb)
+
+    # 25. GET /artists/{channel_id} from search result
+    r_sart = client.get("/search?q=coldplay&filter=artists", headers=auth_headers)
+    p_sart = (r_sart.status_code == 200 and len(r_sart.json().get("results", [])) > 0)
+    first_artist_id = r_sart.json()["results"][0]["id"] if (p_sart and r_sart.json()["results"]) else None
+    p_art = True
+    if first_artist_id:
+        r_art = client.get(f"/artists/{first_artist_id}", headers=auth_headers)
+        p_art = (r_art.status_code == 200 and len(r_art.json().get("top_songs", [])) > 0)
+    report(27, f"GET /artists/{first_artist_id} -> 200 with top songs", p_art)
+
+    # 26. GET /watch/{target_vid}/radio -> 200 with tracks list
+    r_radio = client.get(f"/watch/{target_vid}/radio", headers=auth_headers)
+    p_radio = (r_radio.status_code == 200 and isinstance(r_radio.json().get("tracks"), list))
+    report(28, f"GET /watch/{target_vid}/radio -> 200 with radio tracks", p_radio)
+
+    # 27. GET /lyrics/{target_vid} -> 200 (or 404 if no lyrics exist)
+    r_lyrics = client.get(f"/lyrics/{target_vid}", headers=auth_headers)
+    p_lyrics = (r_lyrics.status_code in (200, 404))
+    report(29, f"GET /lyrics/{target_vid} -> 200 or 404", p_lyrics)
+
+    # 28. Logout and refresh fails
     r_logout = client.post("/auth/logout", json={"refresh_token": refresh_token})
     p_logout = (r_logout.status_code == 204)
     r_ref_after = client.post("/auth/refresh", json={"refresh_token": refresh_token})
     p_revoked = (r_ref_after.status_code == 401)
-    report(19, "POST /auth/logout revokes token, subsequent refresh fails (401)", (p_logout and p_revoked))
+    report(30, "POST /auth/logout revokes token, subsequent refresh fails (401)", (p_logout and p_revoked))
 
-print("\nAll 19 smoke tests PASSED successfully!")
+print("\nAll 30 smoke tests PASSED successfully!")
 EOF

@@ -1,5 +1,6 @@
 import re
 import shutil
+import time
 from typing import Any, List, Optional
 import anyio
 from fastapi import HTTPException, status
@@ -110,31 +111,42 @@ class YTMusicSource(MusicSource):
         self._ytmusic = YTMusic()
 
     def _sync_search(self, query: str, filter_type: str, limit: int) -> list[dict]:
-        return self._ytmusic.search(query=query, filter=filter_type, limit=limit)
+        last_exc = None
+        for attempt in range(4):
+            try:
+                return self._ytmusic.search(query=query, filter=filter_type, limit=limit)
+            except Exception as e:
+                last_exc = e
+                time.sleep(1.0 * (attempt + 1))
+        if last_exc:
+            raise last_exc
+        return []
 
     def _sync_get_track(self, video_id: str) -> dict:
-        try:
-            watch_data = self._ytmusic.get_watch_playlist(videoId=video_id, limit=1)
-            tracks = watch_data.get("tracks", [])
-            if tracks and len(tracks) > 0:
-                return tracks[0]
-        except Exception:
-            pass
+        for attempt in range(3):
+            try:
+                watch_data = self._ytmusic.get_watch_playlist(videoId=video_id, limit=1)
+                tracks = watch_data.get("tracks", [])
+                if tracks and len(tracks) > 0:
+                    return tracks[0]
+            except Exception:
+                time.sleep(0.3)
 
         # Fallback to get_song
-        try:
-            song_data = self._ytmusic.get_song(videoId=video_id)
-            if song_data:
-                video_details = song_data.get("videoDetails", {})
-                return {
-                    "videoId": video_details.get("videoId"),
-                    "title": video_details.get("title"),
-                    "artists": [{"name": video_details.get("author")}],
-                    "duration_seconds": int(video_details.get("lengthSeconds", 0)) or None,
-                    "thumbnails": video_details.get("thumbnail", {}).get("thumbnails", []),
-                }
-        except Exception:
-            pass
+        for attempt in range(3):
+            try:
+                song_data = self._ytmusic.get_song(videoId=video_id)
+                if song_data:
+                    video_details = song_data.get("videoDetails", {})
+                    return {
+                        "videoId": video_details.get("videoId"),
+                        "title": video_details.get("title"),
+                        "artists": [{"name": video_details.get("author")}],
+                        "duration_seconds": int(video_details.get("lengthSeconds", 0)) or None,
+                        "thumbnails": video_details.get("thumbnail", {}).get("thumbnails", []),
+                    }
+            except Exception:
+                time.sleep(0.3)
 
         return {}
 

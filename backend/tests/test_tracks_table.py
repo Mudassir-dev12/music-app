@@ -39,7 +39,7 @@ async def test_search_and_track_upserts_server_side_only(client: AsyncClient):
         "app.routes.search.ytmusic_source.search",
         new=AsyncMock(return_value=SearchResponse(query="test", filter="songs", results=[t_search])),
     ):
-        r_srch = await client.get("/search?q=test", headers=headers)
+        r_srch = await client.get("/search?q=test&filter=songs", headers=headers)
         assert r_srch.status_code == 200
         print("SEARCH JSON:", r_srch.json())
 
