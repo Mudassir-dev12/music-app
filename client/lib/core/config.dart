@@ -10,7 +10,7 @@ String get _kDefaultHost {
     return '127.0.0.1';
   }
   // On mobile devices (Android / iOS): connect to computer's Wi-Fi LAN IP
-  return '192.168.0.104';
+  return '192.168.137.92';
 }
 
 String _configuredApiUrl = const String.fromEnvironment('API_URL').isNotEmpty
