@@ -47,6 +47,16 @@ class RateLimitError extends ApiError {
   final int retryAfterSeconds;
 }
 
+/// HTTP 502 / 503 — upstream music service busy; [retryAfterSeconds] from the Retry-After header.
+class UpstreamBusyError extends ApiError {
+  const UpstreamBusyError({
+    this.retryAfterSeconds = 5,
+    String message = 'The music service is busy right now. Retrying shortly...',
+  }) : super(message);
+
+  final int retryAfterSeconds;
+}
+
 /// HTTP 5xx — server-side error.
 class ServerError extends ApiError {
   const ServerError({required this.statusCode, String message = 'An unexpected server error occurred.'})

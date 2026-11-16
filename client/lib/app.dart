@@ -9,15 +9,19 @@ import 'session/session_controller.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'theme/tokens.dart';
+import 'ui/screens/album_screen.dart';
+import 'ui/screens/artist_screen.dart';
 import 'ui/screens/browse_screen.dart';
 import 'ui/screens/history_screen.dart';
 import 'ui/screens/library_screen.dart';
 import 'ui/screens/listen_now_screen.dart';
+import 'ui/screens/mood_playlists_screen.dart';
 import 'ui/screens/now_playing_screen.dart';
 import 'ui/screens/playlist_screen.dart';
 import 'ui/screens/queue_panel_screen.dart';
 import 'ui/screens/search_screen.dart';
 import 'ui/screens/settings_screen.dart';
+import 'ui/screens/yt_playlist_screen.dart';
 import 'ui/shell/adaptive_shell.dart';
 import 'ui/widgets/server_url_dialog.dart';
 
@@ -88,6 +92,35 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/playlist/:id',
         builder: (context, state) => PlaylistScreen(
           playlistId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/album/:id',
+        builder: (context, state) => AlbumScreen(
+          albumId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/artist/:id',
+        builder: (context, state) => ArtistScreen(
+          artistId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/ytplaylist/:id',
+        builder: (context, state) => YtPlaylistScreen(
+          playlistId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/mood/:params',
+        builder: (context, state) => MoodPlaylistsScreen(
+          params: state.pathParameters['params']!,
+          title: state.uri.queryParameters['title'] ?? 'Mood',
         ),
       ),
       GoRoute(

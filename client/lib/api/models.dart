@@ -32,6 +32,7 @@ class Track {
     this.durationSeconds,
     this.thumbnail,
     required this.isExplicit,
+    this.trackNumber,
   });
 
   final String videoId;
@@ -43,6 +44,7 @@ class Track {
   final int? durationSeconds;
   final String? thumbnail;
   final bool isExplicit;
+  final int? trackNumber;
 
   factory Track.fromJson(Map<String, dynamic> json) => Track(
         videoId: (json['video_id'] as String?) ?? '',
@@ -57,6 +59,7 @@ class Track {
         durationSeconds: json['duration_seconds'] as int?,
         thumbnail: json['thumbnail'] as String?,
         isExplicit: json['is_explicit'] as bool? ?? false,
+        trackNumber: json['track_number'] as int?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -69,6 +72,7 @@ class Track {
         if (durationSeconds != null) 'duration_seconds': durationSeconds,
         if (thumbnail != null) 'thumbnail': thumbnail,
         'is_explicit': isExplicit,
+        if (trackNumber != null) 'track_number': trackNumber,
       };
 }
 

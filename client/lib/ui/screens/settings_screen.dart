@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/config.dart' as config;
 import '../../data/user_data_providers.dart';
+import '../../player/autoplay_controller.dart';
 import '../../theme/theme_controller.dart';
 import '../../theme/tokens.dart';
 import '../widgets/server_url_dialog.dart';
@@ -153,7 +154,33 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: MelodiaTokens.spacingXl),
 
-          // 2. LIBRARY
+          // 2. PLAYBACK
+          _buildSectionHeader(tokens, 'PLAYBACK'),
+          Container(
+            decoration: BoxDecoration(
+              color: tokens.surface,
+              borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+            ),
+            child: SwitchListTile.adaptive(
+              secondary: Icon(Icons.autorenew_rounded, color: tokens.accent),
+              title: Text(
+                'Autoplay Similar Songs',
+                style: MelodiaTokens.headline.copyWith(color: tokens.text),
+              ),
+              subtitle: Text(
+                'Keep playing similar music when your queue ends',
+                style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+              ),
+              value: ref.watch(autoplayEnabledProvider),
+              activeTrackColor: tokens.accent,
+              onChanged: (val) {
+                ref.read(autoplayEnabledProvider.notifier).setAutoplay(val);
+              },
+            ),
+          ),
+          const SizedBox(height: MelodiaTokens.spacingXl),
+
+          // 3. LIBRARY
           _buildSectionHeader(tokens, 'LIBRARY'),
           Container(
             decoration: BoxDecoration(

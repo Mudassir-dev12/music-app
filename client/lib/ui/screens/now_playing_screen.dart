@@ -11,6 +11,7 @@ import '../../player/player_state.dart';
 import '../../player/queue.dart';
 import '../../theme/tokens.dart';
 import '../widgets/like_button.dart';
+import '../widgets/lyrics_view.dart';
 import '../widgets/marquee_text.dart';
 import '../widgets/scrub_bar.dart';
 import '../widgets/track_more_menu.dart';
@@ -27,6 +28,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _scaleController;
   late final Animation<double> _scaleAnimation;
+  bool _showLyrics = false;
+  int _desktopTab = 0;
 
   @override
   void initState() {
@@ -204,40 +207,55 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
 
                         const Spacer(),
 
-                        // Artwork with animated scale
-                        ScaleTransition(
-                          scale: _scaleAnimation,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(MelodiaTokens.radiusHero),
-                            child: Container(
-                              width: artworkSize,
-                              height: artworkSize,
-                              decoration: BoxDecoration(
-                                color: tokens.surface2,
-                                boxShadow: MelodiaTokens.cardShadow,
+                        // Artwork or Lyrics
+                        if (_showLyrics)
+                          Expanded(
+                            flex: 5,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(MelodiaTokens.radiusHero),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: tokens.surface.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(MelodiaTokens.radiusHero),
+                                ),
+                                child: LyricsView(videoId: currentTrack.videoId),
                               ),
-                              child: currentTrack.thumbnail != null &&
-                                      currentTrack.thumbnail!.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: currentTrack.thumbnail!,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) => Container(color: tokens.surface2),
-                                      errorWidget: (_, __, ___) => Icon(
+                            ),
+                          )
+                        else ...[
+                          ScaleTransition(
+                            scale: _scaleAnimation,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(MelodiaTokens.radiusHero),
+                              child: Container(
+                                width: artworkSize,
+                                height: artworkSize,
+                                decoration: BoxDecoration(
+                                  color: tokens.surface2,
+                                  boxShadow: MelodiaTokens.cardShadow,
+                                ),
+                                child: currentTrack.thumbnail != null &&
+                                        currentTrack.thumbnail!.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: currentTrack.thumbnail!,
+                                        fit: BoxFit.cover,
+                                        placeholder: (_, __) => Container(color: tokens.surface2),
+                                        errorWidget: (_, __, ___) => Icon(
+                                          Icons.music_note_rounded,
+                                          size: 64,
+                                          color: tokens.textTertiary,
+                                        ),
+                                      )
+                                    : Icon(
                                         Icons.music_note_rounded,
                                         size: 64,
                                         color: tokens.textTertiary,
                                       ),
-                                    )
-                                  : Icon(
-                                      Icons.music_note_rounded,
-                                      size: 64,
-                                      color: tokens.textTertiary,
-                                    ),
+                              ),
                             ),
                           ),
-                        ),
-
-                        const Spacer(),
+                          const Spacer(),
+                        ],
 
                         // Title & Artist
                         Row(
@@ -340,12 +358,16 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                           children: [
                             IconButton(
                               icon: Icon(
-                                Icons.chat_bubble_outline_rounded,
-                                color: tokens.textTertiary,
-                                size: 22,
+                                Icons.format_quote_rounded,
+                                color: _showLyrics ? tokens.accent : tokens.textSecondary,
+                                size: 24,
                               ),
-                              tooltip: 'Lyrics (Coming in Phase 4)',
-                              onPressed: null,
+                              tooltip: 'Lyrics',
+                              onPressed: () {
+                                setState(() {
+                                  _showLyrics = !_showLyrics;
+                                });
+                              },
                             ),
                             IconButton(
                               icon: Icon(
@@ -541,41 +563,64 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Playing Next',
-                          style: MelodiaTokens.title3.copyWith(color: tokens.text),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => setState(() => _desktopTab = 0),
+                              child: Text(
+                                'Playing Next',
+                                style: MelodiaTokens.title3.copyWith(
+                                  color: _desktopTab == 0 ? tokens.text : tokens.textTertiary,
+                                  fontWeight: _desktopTab == 0 ? FontWeight.w700 : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: MelodiaTokens.spacingLg),
+                            GestureDetector(
+                              onTap: () => setState(() => _desktopTab = 1),
+                              child: Text(
+                                'Lyrics',
+                                style: MelodiaTokens.title3.copyWith(
+                                  color: _desktopTab == 1 ? tokens.text : tokens.textTertiary,
+                                  fontWeight: _desktopTab == 1 ? FontWeight.w700 : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: MelodiaTokens.spacingMd),
                         Expanded(
-                          child: ListView.builder(
-                            itemCount: playerState.queue.queue.length,
-                            itemBuilder: (context, index) {
-                              final track = playerState.queue.queue[index];
-                              final isCurrent = index == playerState.queue.currentIndex;
-                              return ListTile(
-                                leading: Text(
-                                  '${index + 1}',
-                                  style: MelodiaTokens.body.copyWith(
-                                    color: isCurrent ? tokens.accent : tokens.textSecondary,
-                                  ),
+                          child: _desktopTab == 1
+                              ? LyricsView(videoId: currentTrack.videoId)
+                              : ListView.builder(
+                                  itemCount: playerState.queue.queue.length,
+                                  itemBuilder: (context, index) {
+                                    final track = playerState.queue.queue[index];
+                                    final isCurrent = index == playerState.queue.currentIndex;
+                                    return ListTile(
+                                      leading: Text(
+                                        '${index + 1}',
+                                        style: MelodiaTokens.body.copyWith(
+                                          color: isCurrent ? tokens.accent : tokens.textSecondary,
+                                        ),
+                                      ),
+                                      title: Text(
+                                        track.title,
+                                        style: MelodiaTokens.body.copyWith(
+                                          color: isCurrent ? tokens.accent : tokens.text,
+                                          fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        track.artist,
+                                        style: MelodiaTokens.footnote.copyWith(
+                                          color: tokens.textSecondary,
+                                        ),
+                                      ),
+                                      onTap: () => controller.playList(playerState.queue.queue, index),
+                                    );
+                                  },
                                 ),
-                                title: Text(
-                                  track.title,
-                                  style: MelodiaTokens.body.copyWith(
-                                    color: isCurrent ? tokens.accent : tokens.text,
-                                    fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  track.artist,
-                                  style: MelodiaTokens.footnote.copyWith(
-                                    color: tokens.textSecondary,
-                                  ),
-                                ),
-                                onTap: () => controller.playList(playerState.queue.queue, index),
-                              );
-                            },
-                          ),
                         ),
                       ],
                     ),

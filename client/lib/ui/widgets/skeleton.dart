@@ -62,3 +62,72 @@ class _SkeletonBoxState extends State<SkeletonBox>
   }
 }
 
+class SkeletonTrackList extends StatelessWidget {
+  const SkeletonTrackList({super.key, this.count = 6});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: count,
+      padding: const EdgeInsets.symmetric(
+        horizontal: MelodiaTokens.spacingLg,
+        vertical: MelodiaTokens.spacingSm,
+      ),
+      itemBuilder: (context, index) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: MelodiaTokens.spacingSm),
+          child: Row(
+            children: [
+              SkeletonBox(width: 48, height: 48),
+              SizedBox(width: MelodiaTokens.spacingMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SkeletonBox(width: 140, height: 16),
+                    SizedBox(height: 6),
+                    SkeletonBox(width: 90, height: 12),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class SkeletonCardList extends StatelessWidget {
+  const SkeletonCardList({super.key, this.count = 3});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: count,
+        separatorBuilder: (_, __) => const SizedBox(width: MelodiaTokens.spacingMd),
+        itemBuilder: (context, index) {
+          return const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonBox(width: 150, height: 150),
+              SizedBox(height: MelodiaTokens.spacingSm),
+              SkeletonBox(width: 120, height: 14),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+

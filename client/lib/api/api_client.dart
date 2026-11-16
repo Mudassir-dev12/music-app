@@ -199,6 +199,13 @@ class ApiClient {
       case 429:
         final retryAfter = _parseRetryAfter(response);
         return RateLimitError(retryAfterSeconds: retryAfter);
+      case 502:
+      case 503:
+        final retryAfter = _parseRetryAfter(response);
+        return UpstreamBusyError(
+          retryAfterSeconds: retryAfter > 0 ? retryAfter : 5,
+          message: _detail(body, 'The music service is busy right now.'),
+        );
       default:
         if (status >= 500) {
           return ServerError(

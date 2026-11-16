@@ -3,15 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../api/discovery_api.dart';
+import '../../api/discovery_models.dart';
 import '../../api/errors.dart';
 import '../../api/models.dart';
-import '../../api/music_api.dart';
 import '../../player/player_controller.dart';
 import '../../theme/tokens.dart';
+import '../widgets/busy_banner.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
+import '../widgets/media_item_card.dart';
 import '../widgets/screen_scaffold.dart';
+import '../widgets/shelf_section.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/top_result_card.dart';
 import '../widgets/track_row.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -23,10 +28,22 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   Timer? _debounceTimer;
+
   bool _isLoading = false;
   String? _errorMessage;
-  List<Track> _results = [];
+  int? _busyRetryAfter;
+
+  String _selectedFilter = 'All';
+  final List<String> _filters = const ['All', 'Songs', 'Albums', 'Artists', 'Playlists'];
+
+  List<String> _suggestions = [];
+  bool _showSuggestions = false;
+
+  SearchGrouped? _groupedResults;
+  List<MediaItem> _filteredResults = [];
+  List<Track> _songResults = [];
   List<String> _recentSearches = [];
 
   static const String _kRecentSearchesKey = 'recent_searches_list';
@@ -41,11 +58,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void dispose() {
     _debounceTimer?.cancel();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _loadRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _recentSearches = prefs.getStringList(_kRecentSearchesKey) ?? [];
     });
@@ -60,6 +79,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ..._recentSearches.where((q) => q.toLowerCase() != trimmed.toLowerCase()),
     ].take(8).toList();
     await prefs.setStringList(_kRecentSearchesKey, updated);
+    if (!mounted) return;
     setState(() {
       _recentSearches = updated;
     });
@@ -68,6 +88,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Future<void> _clearRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kRecentSearchesKey);
+    if (!mounted) return;
     setState(() {
       _recentSearches = [];
     });
@@ -75,56 +96,153 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _onQueryChanged(String query) {
     _debounceTimer?.cancel();
-    if (query.trim().isEmpty) {
+    final trimmed = query.trim();
+
+    if (trimmed.isEmpty) {
       setState(() {
         _isLoading = false;
         _errorMessage = null;
-        _results = [];
+        _busyRetryAfter = null;
+        _suggestions = [];
+        _showSuggestions = false;
+        _groupedResults = null;
+        _filteredResults = [];
+        _songResults = [];
       });
       return;
     }
 
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      _performSearch(query.trim());
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      // Fetch suggestions
+      try {
+        final discoveryApi = ref.read(discoveryApiProvider);
+        final list = await discoveryApi.getSuggestions(trimmed);
+        if (mounted && _searchController.text.trim() == trimmed) {
+          setState(() {
+            _suggestions = list;
+            _showSuggestions = list.isNotEmpty;
+          });
+        }
+      } catch (_) {}
     });
   }
 
-  Future<void> _performSearch(String query) async {
+  void _onSubmitted(String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    setState(() {
+      _showSuggestions = false;
+    });
+    _saveRecentSearch(trimmed);
+    _performSearch(trimmed, _selectedFilter);
+  }
+
+  void _onSelectSuggestion(String suggestion) {
+    _searchController.text = suggestion;
+    _searchFocusNode.unfocus();
+    setState(() {
+      _showSuggestions = false;
+    });
+    _saveRecentSearch(suggestion);
+    _performSearch(suggestion, _selectedFilter);
+  }
+
+  void _onFilterChanged(String filter) {
+    if (_selectedFilter == filter) return;
+    setState(() {
+      _selectedFilter = filter;
+    });
+    final query = _searchController.text.trim();
+    if (query.isNotEmpty) {
+      _performSearch(query, filter);
+    }
+  }
+
+  Future<void> _performSearch(String query, String filter) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _busyRetryAfter = null;
+      _showSuggestions = false;
     });
 
-    try {
-      final musicApi = ref.read(musicApiProvider);
-      final response = await musicApi.search(query, filter: 'songs', limit: 25);
-      await _saveRecentSearch(query);
+    final discoveryApi = ref.read(discoveryApiProvider);
 
-      if (mounted) {
+    try {
+      if (filter == 'All') {
+        final grouped = await discoveryApi.searchGrouped(query);
+        if (!mounted) return;
         setState(() {
+          _groupedResults = grouped;
           _isLoading = false;
-          _results = response.results;
+        });
+      } else if (filter == 'Songs') {
+        final res = await discoveryApi.searchFilter(query, 'songs');
+        if (!mounted) return;
+        setState(() {
+          _songResults = res.results.map((m) => m.toTrack()).toList();
+          _isLoading = false;
+        });
+      } else {
+        final filterKey = filter.toLowerCase();
+        final res = await discoveryApi.searchFilter(query, filterKey);
+        if (!mounted) return;
+        setState(() {
+          _filteredResults = res.results;
+          _isLoading = false;
         });
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = e is ApiError ? e.message : e.toString();
-        });
-      }
+    } on UpstreamBusyError catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _busyRetryAfter = e.retryAfterSeconds;
+      });
+    } on RateLimitError catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _busyRetryAfter = e.retryAfterSeconds;
+      });
+    } on ApiError catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'An error occurred while searching.';
+      });
     }
+  }
+
+  void _cancelSearch() {
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+    setState(() {
+      _isLoading = false;
+      _errorMessage = null;
+      _busyRetryAfter = null;
+      _suggestions = [];
+      _showSuggestions = false;
+      _groupedResults = null;
+      _filteredResults = [];
+      _songResults = [];
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<MelodiaTokens>()!;
-    final playerState = ref.watch(playerControllerProvider);
-    final currentVideoId = playerState.queue.currentTrack?.videoId;
+    final hasQuery = _searchController.text.trim().isNotEmpty;
 
     return ScreenScaffold(
       title: 'Search',
       slivers: [
+        // 1. Search Bar + Cancel
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -140,32 +258,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       color: tokens.surface2,
                       borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: MelodiaTokens.spacingMd,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingMd),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.search_rounded,
-                          color: tokens.textSecondary,
-                          size: 20,
-                        ),
+                        Icon(Icons.search_rounded, color: tokens.textSecondary, size: 20),
                         const SizedBox(width: MelodiaTokens.spacingSm),
                         Expanded(
                           child: TextField(
                             controller: _searchController,
-                            onChanged: _onQueryChanged,
-                            onSubmitted: (q) => _performSearch(q.trim()),
+                            focusNode: _searchFocusNode,
                             style: MelodiaTokens.body.copyWith(color: tokens.text),
                             decoration: InputDecoration(
                               hintText: 'Artists, Songs, Lyrics, and More',
-                              hintStyle: MelodiaTokens.body.copyWith(
-                                color: tokens.textTertiary,
-                              ),
+                              hintStyle: MelodiaTokens.body.copyWith(color: tokens.textTertiary),
                               border: InputBorder.none,
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
                             ),
+                            onChanged: _onQueryChanged,
+                            onSubmitted: _onSubmitted,
                           ),
                         ),
                         if (_searchController.text.isNotEmpty)
@@ -174,24 +285,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               _searchController.clear();
                               _onQueryChanged('');
                             },
-                            child: Icon(
-                              Icons.cancel_rounded,
-                              color: tokens.textSecondary,
-                              size: 18,
-                            ),
+                            child: Icon(Icons.cancel_rounded, color: tokens.textSecondary, size: 18),
                           ),
                       ],
                     ),
                   ),
                 ),
-                if (_searchController.text.isNotEmpty) ...[
+                if (_searchFocusNode.hasFocus || hasQuery) ...[
                   const SizedBox(width: MelodiaTokens.spacingSm),
-                  TextButton(
-                    onPressed: () {
-                      _searchController.clear();
-                      _onQueryChanged('');
-                      FocusScope.of(context).unfocus();
-                    },
+                  GestureDetector(
+                    onTap: _cancelSearch,
                     child: Text(
                       'Cancel',
                       style: MelodiaTokens.body.copyWith(color: tokens.accent),
@@ -203,147 +306,281 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ),
 
-        // Body content
-        if (_isLoading)
+        // 2. Filter Pills (when query exists or focused)
+        if (hasQuery)
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 44,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: MelodiaTokens.spacingLg,
+                  vertical: MelodiaTokens.spacingXs,
+                ),
+                scrollDirection: Axis.horizontal,
+                itemCount: _filters.length,
+                separatorBuilder: (_, __) => const SizedBox(width: MelodiaTokens.spacingSm),
+                itemBuilder: (context, index) {
+                  final filter = _filters[index];
+                  final isSelected = _selectedFilter == filter;
+                  return GestureDetector(
+                    onTap: () => _onFilterChanged(filter),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: MelodiaTokens.spacingMd,
+                        vertical: MelodiaTokens.spacingXs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected ? tokens.accent : tokens.surface2,
+                        borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        filter,
+                        style: MelodiaTokens.subhead.copyWith(
+                          color: tokens.text,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+        // 3. Busy Banner
+        if (_busyRetryAfter != null)
+          SliverToBoxAdapter(
+            child: BusyBanner(
+              retryAfterSeconds: _busyRetryAfter!,
+              onRetry: () {
+                final query = _searchController.text.trim();
+                if (query.isNotEmpty) _performSearch(query, _selectedFilter);
+              },
+            ),
+          ),
+
+        // 4. Suggestions overlay / list
+        if (_showSuggestions && _suggestions.isNotEmpty)
           SliverList(
             delegate: SliverChildBuilderDelegate(
-              (_, __) => const Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MelodiaTokens.spacingLg,
-                  vertical: MelodiaTokens.spacingSm,
-                ),
-                child: Row(
-                  children: [
-                    SkeletonBox(
-                      width: 48,
-                      height: 48,
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(MelodiaTokens.radiusArtworkSm),
-                      ),
-                    ),
-                    SizedBox(width: MelodiaTokens.spacingMd),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SkeletonBox(width: 180, height: 16),
-                          SizedBox(height: MelodiaTokens.spacingXs),
-                          SkeletonBox(width: 120, height: 12),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              childCount: 8,
+              (context, index) {
+                final suggestion = _suggestions[index];
+                return ListTile(
+                  leading: Icon(Icons.search_rounded, color: tokens.textSecondary, size: 20),
+                  title: Text(
+                    suggestion,
+                    style: MelodiaTokens.body.copyWith(color: tokens.text),
+                  ),
+                  trailing: Icon(Icons.north_west_rounded, color: tokens.textTertiary, size: 16),
+                  onTap: () => _onSelectSuggestion(suggestion),
+                );
+              },
+              childCount: _suggestions.length,
             ),
           )
+
+        // 5. Loading State
+        else if (_isLoading)
+          const SliverFillRemaining(
+            child: SkeletonTrackList(count: 6),
+          )
+
+        // 6. Error State
         else if (_errorMessage != null)
           SliverFillRemaining(
             hasScrollBody: false,
             child: ErrorState(
               message: _errorMessage!,
-              onRetry: () => _performSearch(_searchController.text),
+              onRetry: () => _performSearch(_searchController.text.trim(), _selectedFilter),
             ),
           )
-        else if (_searchController.text.isEmpty)
-          if (_recentSearches.isNotEmpty)
-            SliverList(
-              delegate: SliverChildListDelegate([
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: MelodiaTokens.spacingLg,
-                    vertical: MelodiaTokens.spacingMd,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Recent Searches',
-                        style: MelodiaTokens.headline.copyWith(color: tokens.text),
-                      ),
-                      GestureDetector(
-                        onTap: _clearRecentSearches,
-                        child: Text(
-                          'Clear',
-                          style: MelodiaTokens.subhead.copyWith(
-                            color: tokens.accent,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ..._recentSearches.map((query) => ListTile(
-                      dense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: MelodiaTokens.spacingLg,
-                      ),
-                      leading: Icon(
-                        Icons.history_rounded,
-                        color: tokens.textTertiary,
-                        size: 20,
-                      ),
-                      title: Text(
-                        query,
-                        style: MelodiaTokens.body.copyWith(color: tokens.text),
-                      ),
-                      onTap: () {
-                        _searchController.text = query;
-                        _performSearch(query);
-                      },
-                    )),
-              ]),
-            )
-          else
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: EmptyState(
-                icon: Icons.search_rounded,
-                title: 'Search for Music',
-                subtitle: 'Find your favorite songs, artists, and albums.',
+
+        // 7. No Query -> Recent Searches
+        else if (!hasQuery)
+          _buildRecentSearches(tokens)
+
+        // 8. Search Results
+        else
+          ..._buildResultsSlivers(tokens),
+      ],
+    );
+  }
+
+  Widget _buildRecentSearches(MelodiaTokens tokens) {
+    if (_recentSearches.isEmpty) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: EmptyState(
+          icon: Icons.search_rounded,
+          title: 'Search Melodia',
+          subtitle: 'Find your favourite songs, artists, albums and playlists.',
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildListDelegate([
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: MelodiaTokens.spacingLg,
+            vertical: MelodiaTokens.spacingMd,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent Searches',
+                style: MelodiaTokens.headline.copyWith(color: tokens.text),
               ),
-            )
-        else if (_results.isEmpty)
+              GestureDetector(
+                onTap: _clearRecentSearches,
+                child: Text(
+                  'Clear',
+                  style: MelodiaTokens.subhead.copyWith(color: tokens.accent),
+                ),
+              ),
+            ],
+          ),
+        ),
+        ..._recentSearches.map((query) => ListTile(
+              leading: Icon(Icons.history_rounded, color: tokens.textSecondary),
+              title: Text(
+                query,
+                style: MelodiaTokens.body.copyWith(color: tokens.text),
+              ),
+              onTap: () {
+                _searchController.text = query;
+                _searchFocusNode.unfocus();
+                _performSearch(query, _selectedFilter);
+              },
+            )),
+      ]),
+    );
+  }
+
+  List<Widget> _buildResultsSlivers(MelodiaTokens tokens) {
+    // A. "All" Filter -> Grouped results
+    if (_selectedFilter == 'All') {
+      if (_groupedResults == null ||
+          (_groupedResults!.topResult == null && _groupedResults!.sections.isEmpty)) {
+        return [
           const SliverFillRemaining(
             hasScrollBody: false,
             child: EmptyState(
-              icon: Icons.search_off_rounded,
+              icon: Icons.music_off_rounded,
               title: 'No Results Found',
-              subtitle: 'Try searching with different keywords.',
+              subtitle: 'Try searching for something else.',
             ),
           )
-        else
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final track = _results[index];
-                final isCurrent = track.videoId == currentVideoId;
-                final isPlaying = isCurrent && playerState.isPlaying;
+        ];
+      }
 
-                return TrackRow(
-                  track: track,
-                  index: index,
-                  isCurrentTrack: isCurrent,
-                  isPlaying: isPlaying,
-                  onTap: () {
-                    ref.read(playerControllerProvider.notifier).playList(
-                          _results,
-                          index,
-                        );
-                  },
-                  onPlayNext: (t) {
-                    ref.read(playerControllerProvider.notifier).enqueueNext(t);
-                  },
-                  onAddToQueue: (t) {
-                    ref.read(playerControllerProvider.notifier).enqueueLast(t);
-                  },
-                );
-              },
-              childCount: _results.length,
-            ),
+      final widgets = <Widget>[];
+
+      // Top result card
+      if (_groupedResults!.topResult != null) {
+        widgets.add(TopResultCard(item: _groupedResults!.topResult!));
+        widgets.add(const SizedBox(height: MelodiaTokens.spacingMd));
+      }
+
+      // Grouped shelves
+      for (final section in _groupedResults!.sections) {
+        widgets.add(
+          ShelfSection(
+            shelf: section,
+            onSeeAll: () {
+              // Switch to corresponding filter
+              final title = section.title.toLowerCase();
+              if (title.contains('song')) {
+                _onFilterChanged('Songs');
+              } else if (title.contains('album')) {
+                _onFilterChanged('Albums');
+              } else if (title.contains('artist')) {
+                _onFilterChanged('Artists');
+              } else if (title.contains('playlist')) {
+                _onFilterChanged('Playlists');
+              }
+            },
           ),
-      ],
-    );
+        );
+      }
+
+      return [SliverList(delegate: SliverChildListDelegate(widgets))];
+    }
+
+    // B. "Songs" Filter
+    if (_selectedFilter == 'Songs') {
+      if (_songResults.isEmpty) {
+        return [
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: EmptyState(
+              icon: Icons.music_off_rounded,
+              title: 'No Songs Found',
+              subtitle: 'Try searching for a different song.',
+            ),
+          )
+        ];
+      }
+
+      return [
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final track = _songResults[index];
+              return TrackRow(
+                track: track,
+                onTap: () {
+                  ref.read(playerControllerProvider.notifier).playQueue(
+                        _songResults,
+                        initialIndex: index,
+                      );
+                },
+              );
+            },
+            childCount: _songResults.length,
+          ),
+        )
+      ];
+    }
+
+    // C. "Albums", "Artists", "Playlists"
+    if (_filteredResults.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
+            icon: Icons.music_off_rounded,
+            title: 'No $_selectedFilter Found',
+            subtitle: 'Try searching for something else.',
+          ),
+        )
+      ];
+    }
+
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: MelodiaTokens.spacingLg,
+          vertical: MelodiaTokens.spacingMd,
+        ),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 180,
+            mainAxisSpacing: MelodiaTokens.spacingLg,
+            crossAxisSpacing: MelodiaTokens.spacingLg,
+            childAspectRatio: 0.72,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final item = _filteredResults[index];
+              return MediaItemCard(item: item, width: 170);
+            },
+            childCount: _filteredResults.length,
+          ),
+        ),
+      )
+    ];
   }
 }

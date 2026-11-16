@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
+import '../api/discovery_api.dart';
 import '../api/errors.dart';
 import '../api/models.dart';
 import '../core/platform/media_session.dart';
 import 'audio_handler.dart';
 import 'audio_url_service.dart';
+import 'autoplay_controller.dart';
 import 'events.dart';
 import 'persistence.dart';
 import 'player_state.dart';
@@ -133,6 +135,10 @@ class PlayerController extends Notifier<PlayerStateData> {
     final newQueue = q.playList(state.queue, tracks, startIndex);
     state = state.copyWith(queue: newQueue);
     await _loadAndPlayCurrent();
+  }
+
+  Future<void> playQueue(List<Track> tracks, {int initialIndex = 0}) async {
+    await playList(tracks, initialIndex);
   }
 
   Future<void> playTrack(Track track) async {
@@ -264,7 +270,29 @@ class PlayerController extends Notifier<PlayerStateData> {
   Future<void> skipNext() async {
     final newQueue = q.nextTrack(state.queue);
     if (newQueue.currentIndex == -1) {
-      // End of queue with repeat off
+      // End of queue with repeat off — check if autoplay is enabled
+      final autoplayEnabled = ref.read(autoplayEnabledProvider);
+      final lastTrack = state.queue.currentTrack;
+      if (autoplayEnabled && lastTrack != null) {
+        final discoveryApi = ref.read(discoveryApiProvider);
+        final candidates = await getAutoplayCandidates(
+          discoveryApi: discoveryApi,
+          seedTrack: lastTrack,
+          existingQueue: state.queue.queue,
+        );
+        if (candidates.isNotEmpty) {
+          final updatedList = [...state.queue.queue, ...candidates];
+          final nextIndex = state.queue.queue.length;
+          final updatedQueue = state.queue.copyWith(
+            queue: updatedList,
+            currentIndex: nextIndex,
+          );
+          state = state.copyWith(queue: updatedQueue);
+          await _loadAndPlayCurrent();
+          return;
+        }
+      }
+
       state = state.copyWith(
         queue: newQueue.copyWith(currentIndex: 0),
         status: PlayerStatus.paused,

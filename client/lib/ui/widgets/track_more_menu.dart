@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../api/discovery_api.dart';
 import '../../api/models.dart';
 import '../../data/user_data_providers.dart';
 import '../../player/player_controller.dart';
@@ -162,34 +164,62 @@ void showTrackMoreMenu({
                 },
               ),
 
-            // 6. Download (Coming soon)
+            // 6. Start Radio
+            ListTile(
+              leading: Icon(Icons.radio_rounded, color: tokens.accent),
+              title: Text(
+                'Start Radio',
+                style: MelodiaTokens.body.copyWith(color: tokens.text),
+              ),
+              onTap: () async {
+                Navigator.pop(ctx);
+                try {
+                  final radio = await ref.read(discoveryApiProvider).getWatchRadio(track.videoId);
+                  if (radio.isNotEmpty) {
+                    ref.read(playerControllerProvider.notifier).playQueue(radio, initialIndex: 0);
+                  }
+                } catch (_) {}
+              },
+            ),
+
+            // 7. Go to Artist
+            if (track.artists.isNotEmpty && track.artists.first.id != null)
+              ListTile(
+                leading: Icon(Icons.person_rounded, color: tokens.textSecondary),
+                title: Text(
+                  'Go to Artist',
+                  style: MelodiaTokens.body.copyWith(color: tokens.text),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/artist/${track.artists.first.id!}');
+                },
+              ),
+
+            // 8. Go to Album
+            if (track.albumId != null && track.albumId!.isNotEmpty)
+              ListTile(
+                leading: Icon(Icons.album_rounded, color: tokens.textSecondary),
+                title: Text(
+                  'Go to Album',
+                  style: MelodiaTokens.body.copyWith(color: tokens.text),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/album/${track.albumId!}');
+                },
+              ),
+
+            // 9. Download (Coming soon in Phase 5)
             ListTile(
               leading: Icon(Icons.download_rounded, color: tokens.textTertiary),
               title: Text(
                 'Download',
-                style:
-                    MelodiaTokens.body.copyWith(color: tokens.textTertiary),
+                style: MelodiaTokens.body.copyWith(color: tokens.textTertiary),
               ),
               subtitle: Text(
                 'Coming soon',
-                style:
-                    MelodiaTokens.caption.copyWith(color: tokens.textTertiary),
-              ),
-              enabled: false,
-            ),
-
-            // 7. Go to Artist (Coming soon)
-            ListTile(
-              leading: Icon(Icons.person_rounded, color: tokens.textTertiary),
-              title: Text(
-                'Go to Artist',
-                style:
-                    MelodiaTokens.body.copyWith(color: tokens.textTertiary),
-              ),
-              subtitle: Text(
-                'Coming soon',
-                style:
-                    MelodiaTokens.caption.copyWith(color: tokens.textTertiary),
+                style: MelodiaTokens.caption.copyWith(color: tokens.textTertiary),
               ),
               enabled: false,
             ),
