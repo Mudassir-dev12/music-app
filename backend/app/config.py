@@ -57,6 +57,22 @@ class Settings(BaseSettings):
     HISTORY_MAX_ITEMS_PER_USER: int = 10000
     HISTORY_RETENTION_DAYS: int = 365
 
+    # Phase 4: Discovery, Upstream Limiter & Cache TTLs
+    YTMUSIC_LOCATION: str = "US"
+    YTMUSIC_LANGUAGE: str = "en"
+    YTM_MAX_CONCURRENT_UPSTREAM: int = 4
+    YTM_MAX_UPSTREAM_PER_MIN: int = 60
+    TTL_HOME: int = 1800
+    TTL_CHARTS: int = 3600
+    TTL_MOODS: int = 86400
+    TTL_ALBUM: int = 21600
+    TTL_ARTIST: int = 21600
+    TTL_PLAYLIST: int = 3600
+    TTL_LYRICS: int = 604800
+    TTL_SUGGEST: int = 600
+    TTL_RADIO: int = 900
+    STALE_EXTRA_TTL: int = 86400
+
     @property
     def cors_origins_list(self) -> List[str]:
         if not self.CORS_ORIGINS:
