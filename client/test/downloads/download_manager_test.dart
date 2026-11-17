@@ -45,12 +45,10 @@ class InMemoryDownloadStore implements DownloadStore {
     tempFiles.remove(videoId);
   }
 
-  @override
   Future<void> deleteTemp(String videoId) async {
     tempFiles.remove(videoId);
   }
 
-  @override
   Future<bool> has(String videoId) async => files.containsKey(videoId);
 
   @override
@@ -62,7 +60,6 @@ class InMemoryDownloadStore implements DownloadStore {
   @override
   Future<int> sizeOf(String videoId) async => files[videoId]?.length ?? 0;
 
-  @override
   Future<int> tempSizeOf(String videoId) async => tempFiles[videoId]?.length ?? 0;
 
   @override
@@ -85,13 +82,11 @@ class InMemoryDownloadStore implements DownloadStore {
     manifestContent = null;
   }
 
-  @override
   Future<List<String>> listTrackIds() async => files.keys.toList();
 
   @override
   Future<List<String>> listDownloadedVideoIds() async => files.keys.toList();
 
-  @override
   Future<void> cleanOrphans(Set<String> validIds) async {
     files.removeWhere((k, _) => !validIds.contains(k));
     tempFiles.clear();
@@ -155,10 +150,8 @@ class _InMemoryWriter implements DownloadWriter {
 class FakeNetworkDetector implements NetworkTypeDetector {
   bool isWifiMode = true;
 
-  @override
   Future<bool> isWifi() async => isWifiMode;
 
-  @override
   Future<bool> isCellular() async => !isWifiMode;
 
   @override
@@ -179,21 +172,21 @@ void main() {
     late FakeNetworkDetector networkDetector;
     late DownloadManager manager;
 
-    final testTrack1 = Track(
+    const testTrack1 = Track(
       videoId: 'vid1',
       title: 'Track One',
       artist: 'Artist A',
-      artists: const [Artist(name: 'Artist A')],
+      artists: [Artist(name: 'Artist A')],
       album: 'Album X',
       durationSeconds: 180,
       isExplicit: false,
     );
 
-    final testTrack2 = Track(
+    const testTrack2 = Track(
       videoId: 'vid2',
       title: 'Track Two',
       artist: 'Artist B',
-      artists: const [Artist(name: 'Artist B')],
+      artists: [Artist(name: 'Artist B')],
       album: 'Album Y',
       durationSeconds: 200,
       isExplicit: false,

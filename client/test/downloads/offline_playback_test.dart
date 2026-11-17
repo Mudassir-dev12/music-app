@@ -4,7 +4,7 @@ import 'package:melodia/downloads/download_models.dart';
 
 void main() {
   group('Offline Playback Logic', () {
-    final downloadedTrack = const Track(
+    const downloadedTrack = Track(
       videoId: 'dl1',
       title: 'Downloaded Song',
       artist: 'Artist One',
@@ -13,7 +13,7 @@ void main() {
       isExplicit: false,
     );
 
-    final onlineTrack = const Track(
+    const onlineTrack = Track(
       videoId: 'online1',
       title: 'Online Song',
       artist: 'Artist Two',
