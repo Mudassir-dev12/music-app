@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 import time
@@ -164,6 +165,12 @@ class YTMusicSource(MusicSource):
         node_path = shutil.which("node")
         if node_path:
             ydl_opts["js_runtimes"] = {"node": {"path": node_path}}
+        cookie_path = os.getenv("YTDLP_COOKIES_FILE", "/var/www/music-app/data/cookies.txt")
+        if os.path.exists(cookie_path):
+            ydl_opts["cookiefile"] = cookie_path
+        proxy = os.getenv("YTDLP_PROXY")
+        if proxy:
+            ydl_opts["proxy"] = proxy
         url = f"https://www.youtube.com/watch?v={video_id}"
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)

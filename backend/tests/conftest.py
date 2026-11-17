@@ -16,8 +16,10 @@ settings.ARGON2_MEMORY_KB = 512
 settings.ARGON2_TIME_COST = 1
 settings.ARGON2_PARALLELISM = 1
 settings.RATE_LIMIT_PER_MIN = 120
-settings.DAILY_AUDIO_MB_PER_USER = 1500
-settings.MONTHLY_AUDIO_GB_GLOBAL = 1500
+settings.DAILY_AUDIO_MB_PER_USER = 68266
+settings.MONTHLY_AUDIO_GB_GLOBAL = 2048
+settings.ALLOW_REGISTRATION = True
+settings.MAX_USERS = 0
 
 
 @pytest.fixture(scope="session")

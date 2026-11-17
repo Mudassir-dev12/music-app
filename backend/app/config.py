@@ -44,8 +44,8 @@ class Settings(BaseSettings):
 
     MAX_CONCURRENT_STREAMS: int = 20
     RATE_LIMIT_PER_MIN: int = 120
-    DAILY_AUDIO_MB_PER_USER: int = 1500
-    MONTHLY_AUDIO_GB_GLOBAL: int = 1500
+    DAILY_AUDIO_MB_PER_USER: int = 68266
+    MONTHLY_AUDIO_GB_GLOBAL: int = 2048
 
     STREAM_URL_TTL: int = 3000
     SEARCH_TTL: int = 900

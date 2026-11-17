@@ -32,7 +32,7 @@ async def test_bandwidth_guard_daily_and_global_limits(client: AsyncClient):
             assert "Daily audio" in excinfo.value.detail
             assert "Retry-After" in excinfo.value.headers
         finally:
-            settings.DAILY_AUDIO_MB_PER_USER = 1500
+            settings.DAILY_AUDIO_MB_PER_USER = 68266
             await bandwidth_guard.flush()
 
         # 3. Setting to 0 disables limit
@@ -40,7 +40,7 @@ async def test_bandwidth_guard_daily_and_global_limits(client: AsyncClient):
         try:
             await bandwidth_guard.check_limits(user_id, db)
         finally:
-            settings.DAILY_AUDIO_MB_PER_USER = 1500
+            settings.DAILY_AUDIO_MB_PER_USER = 68266
 
         # 4. Global monthly limit exceeded
         settings.DAILY_AUDIO_MB_PER_USER = 0
@@ -52,8 +52,8 @@ async def test_bandwidth_guard_daily_and_global_limits(client: AsyncClient):
             assert excinfo_global.value.status_code == 503
             assert "Monthly global" in excinfo_global.value.detail
         finally:
-            settings.DAILY_AUDIO_MB_PER_USER = 1500
-            settings.MONTHLY_AUDIO_GB_GLOBAL = 1500
+            settings.DAILY_AUDIO_MB_PER_USER = 68266
+            settings.MONTHLY_AUDIO_GB_GLOBAL = 2048
             await bandwidth_guard.flush()
 
 
