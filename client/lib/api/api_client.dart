@@ -4,10 +4,12 @@ library;
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/config.dart' as config;
+import '../core/connectivity/connectivity_controller.dart';
 import 'errors.dart';
 
 // ---------------------------------------------------------------------------
@@ -19,7 +21,11 @@ import 'errors.dart';
 /// The [SessionController] must call [ApiClient.setAccessToken] after sign-in
 /// and [ApiClient.clearAccessToken] after sign-out.
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient();
+  final client = ApiClient();
+  client.onNetworkFailure = (err) {
+    ref.read(connectivityProvider.notifier).reportFailure(error: err);
+  };
+  return client;
 });
 
 // ---------------------------------------------------------------------------
@@ -34,24 +40,27 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 ///   same refresh attempt, then retry once.
 /// - Parses backend error bodies into typed [ApiError] subclasses.
 class ApiClient {
-  ApiClient() {
-    _dio = Dio(BaseOptions(
-      baseUrl: config.apiUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      // We validate status ourselves so we can catch 4xx/5xx in the interceptor.
-      validateStatus: (_) => true,
-    ));
+  ApiClient({Dio? dio}) {
+    _dio = dio ??
+        Dio(BaseOptions(
+          baseUrl: config.apiUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          // We validate status ourselves so we can catch 4xx/5xx in the interceptor.
+          validateStatus: (_) => true,
+        ));
 
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: _onRequest,
-      onResponse: _onResponse,
-      onError: _onError,
-    ));
+    if (dio == null) {
+      _dio.interceptors.add(InterceptorsWrapper(
+        onRequest: _onRequest,
+        onResponse: _onResponse,
+        onError: _onError,
+      ));
+    }
   }
 
   late final Dio _dio;
@@ -67,6 +76,9 @@ class ApiClient {
   // Callback set by SessionController so the interceptor can clear session on
   // permanent 401 (refresh failed).
   void Function()? onSessionExpired;
+
+  // Callback set by provider to notify connectivity state of network failures.
+  void Function(Object error)? onNetworkFailure;
 
   /// Updates the base URL for Dio and global config.
   void updateBaseUrl(String newUrl) {
@@ -270,67 +282,118 @@ class ApiClient {
   // Public HTTP methods
   // ---------------------------------------------------------------------------
 
-  /// GET [path] with optional [queryParams]. Returns decoded JSON.
-  Future<dynamic> get(String path, {Map<String, dynamic>? queryParams}) async {
-    try {
-      final resp = await _dio.get<dynamic>(path, queryParameters: queryParams);
-      return resp.data;
-    } on DioException catch (e) {
-      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+  /// Retries idempotent requests (GET/HEAD) up to 2 times with backoff.
+  Future<dynamic> _retryIdempotent(Future<dynamic> Function() request) async {
+    const maxRetries = 2;
+    const delays = [Duration(milliseconds: 500), Duration(milliseconds: 1500)];
+
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await request();
+      } on ApiError catch (e) {
+        final shouldRetry = (e is NetworkError ||
+            e is UpstreamBusyError ||
+            (e is ServerError &&
+                (e.statusCode == 502 || e.statusCode == 503 || e.statusCode == 504)));
+        if (!shouldRetry || attempt == maxRetries) {
+          onNetworkFailure?.call(e);
+          rethrow;
+        }
+
+        Duration delay = delays[attempt];
+        if (e is UpstreamBusyError && e.retryAfterSeconds > 0 && e.retryAfterSeconds <= 5) {
+          delay = Duration(seconds: e.retryAfterSeconds);
+        } else if (e is RateLimitError && e.retryAfterSeconds > 0 && e.retryAfterSeconds <= 5) {
+          delay = Duration(seconds: e.retryAfterSeconds);
+        }
+        await Future<void>.delayed(delay);
+      } catch (e) {
+        if (attempt == maxRetries) {
+          onNetworkFailure?.call(e);
+          rethrow;
+        }
+        await Future<void>.delayed(delays[attempt]);
+      }
     }
   }
 
-  /// POST [path] with a JSON [body]. Returns decoded JSON.
+  @visibleForTesting
+  Future<dynamic> retryIdempotentForTesting(Future<dynamic> Function() request) =>
+      _retryIdempotent(request);
+
+  /// GET [path] with optional [queryParams]. Returns decoded JSON.
+  Future<dynamic> get(String path, {Map<String, dynamic>? queryParams}) async {
+    return _retryIdempotent(() async {
+      try {
+        final resp = await _dio.get<dynamic>(path, queryParameters: queryParams);
+        return resp.data;
+      } on DioException catch (e) {
+        throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      }
+    });
+  }
+
+  /// POST [path] with a JSON [body]. Returns decoded JSON. Never auto-retried.
   Future<dynamic> post(String path, dynamic body) async {
     try {
       final resp = await _dio.post<dynamic>(path, data: body);
       return resp.data;
     } on DioException catch (e) {
-      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      final err = e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      onNetworkFailure?.call(err);
+      throw err;
     }
   }
 
-  /// PUT [path] with optional [body]. Returns decoded JSON.
+  /// PUT [path] with optional [body]. Returns decoded JSON. Never auto-retried.
   Future<dynamic> put(String path, [dynamic body]) async {
     try {
       final resp = await _dio.put<dynamic>(path, data: body);
       return resp.data;
     } on DioException catch (e) {
-      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      final err = e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      onNetworkFailure?.call(err);
+      throw err;
     }
   }
 
-  /// PATCH [path] with a JSON [body]. Returns decoded JSON.
+  /// PATCH [path] with a JSON [body]. Returns decoded JSON. Never auto-retried.
   Future<dynamic> patch(String path, dynamic body) async {
     try {
       final resp = await _dio.patch<dynamic>(path, data: body);
       return resp.data;
     } on DioException catch (e) {
-      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      final err = e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      onNetworkFailure?.call(err);
+      throw err;
     }
   }
 
-  /// DELETE [path] with optional [queryParams]. Returns decoded JSON.
+  /// DELETE [path] with optional [queryParams]. Returns decoded JSON. Never auto-retried.
   Future<dynamic> delete(String path, {Map<String, dynamic>? queryParams}) async {
     try {
       final resp = await _dio.delete<dynamic>(path, queryParameters: queryParams);
       return resp.data;
     } on DioException catch (e) {
-      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      final err = e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      onNetworkFailure?.call(err);
+      throw err;
     }
   }
 
   /// HEAD [path] for warmup/pre-resolving streams.
   Future<dynamic> head(String path) async {
-    try {
-      final resp = await _dio.head<dynamic>(path);
-      return resp.data;
-    } on DioException catch (e) {
-      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
-    }
+    return _retryIdempotent(() async {
+      try {
+        final resp = await _dio.head<dynamic>(path);
+        return resp.data;
+      } on DioException catch (e) {
+        throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      }
+    });
   }
 
-  /// POST [path] with form-encoded body (no data). Returns decoded JSON.
+  /// POST [path] with form-encoded body (no data). Returns decoded JSON. Never auto-retried.
   Future<dynamic> postForm(String path) async {
     try {
       final resp = await _dio.post<dynamic>(
@@ -339,7 +402,9 @@ class ApiClient {
       );
       return resp.data;
     } on DioException catch (e) {
-      throw e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      final err = e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      onNetworkFailure?.call(err);
+      throw err;
     }
   }
 }

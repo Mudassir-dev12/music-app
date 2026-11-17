@@ -112,3 +112,4 @@ async def test_reset_password_existing_and_nonexistent(test_db_path):
         reset_password=True,
     )
     assert code_nonexistent == 1
+

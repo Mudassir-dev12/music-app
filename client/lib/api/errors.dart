@@ -13,7 +13,7 @@ abstract class ApiError implements Exception {
 
 /// A network-level failure (no connectivity, timeout, etc.).
 class NetworkError extends ApiError {
-  const NetworkError([super.message = 'Network error. Check your connection.']);
+  const NetworkError([super.message = "Can't reach the music server. Check your connection; we'll keep trying."]);
 }
 
 /// HTTP 401 — credentials invalid or access token expired and refresh failed.
@@ -42,7 +42,7 @@ class ValidationError extends ApiError {
 /// HTTP 429 — rate limited; [retryAfterSeconds] from the Retry-After header.
 class RateLimitError extends ApiError {
   const RateLimitError({required this.retryAfterSeconds})
-      : super('Too many requests. Please try again later.');
+      : super('Too many requests. Try again in $retryAfterSeconds seconds.');
 
   final int retryAfterSeconds;
 }
@@ -51,7 +51,7 @@ class RateLimitError extends ApiError {
 class UpstreamBusyError extends ApiError {
   const UpstreamBusyError({
     this.retryAfterSeconds = 5,
-    String message = 'The music service is busy right now. Retrying shortly...',
+    String message = 'The music server is starting or busy. Try again in a moment.',
   }) : super(message);
 
   final int retryAfterSeconds;
@@ -59,7 +59,7 @@ class UpstreamBusyError extends ApiError {
 
 /// HTTP 5xx — server-side error.
 class ServerError extends ApiError {
-  const ServerError({required this.statusCode, String message = 'An unexpected server error occurred.'})
+  const ServerError({required this.statusCode, String message = 'The music server is starting or busy. Try again in a moment.'})
       : super(message);
 
   final int statusCode;
@@ -67,5 +67,52 @@ class ServerError extends ApiError {
 
 /// Any other unexpected error.
 class UnknownError extends ApiError {
-  const UnknownError([super.message = 'An unknown error occurred.']);
+  const UnknownError([super.message = 'Something went wrong. Try again.']);
+}
+
+/// Returns a user-friendly message for any error.
+String userFacingErrorMessage(Object error) {
+  if (error is NetworkError) {
+    return "Can't reach the music server. Check your connection; we'll keep trying.";
+  }
+  if (error is UpstreamBusyError) {
+    return "The music server is starting or busy. Try again in a moment.";
+  }
+  if (error is ServerError) {
+    if (error.statusCode == 502 || error.statusCode == 503 || error.statusCode == 504) {
+      return "The music server is starting or busy. Try again in a moment.";
+    }
+    return "The music server is starting or busy. Try again in a moment.";
+  }
+  if (error is RateLimitError) {
+    return "Too many requests. Try again in ${error.retryAfterSeconds} seconds.";
+  }
+  if (error is UnauthorizedError) {
+    return "Sign in required. Please check your credentials.";
+  }
+  if (error is ConflictError) {
+    return error.message;
+  }
+  if (error is ValidationError) {
+    return error.message;
+  }
+  final errStr = error.toString().toLowerCase();
+  if (errStr.contains('connection') || errStr.contains('socket') || errStr.contains('timeout')) {
+    return "Can't reach the music server. Check your connection; we'll keep trying.";
+  }
+  return "Something went wrong. Try again.";
+}
+
+/// Returns true if [error] represents a transient network or server unavailability.
+bool isNetworkError(Object error) {
+  if (error is NetworkError || error is UpstreamBusyError) return true;
+  if (error is ServerError &&
+      (error.statusCode == 502 || error.statusCode == 503 || error.statusCode == 504)) {
+    return true;
+  }
+  final errStr = error.toString().toLowerCase();
+  return errStr.contains('socket') ||
+      errStr.contains('connection') ||
+      errStr.contains('timeout') ||
+      errStr.contains('unreachable');
 }

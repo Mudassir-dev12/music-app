@@ -212,6 +212,12 @@ client/
 
 All `/me/*` routes require a valid Bearer access token (`Authorization: Bearer <access_token>`).
 
+### System & Health
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Cheap, unthrottled liveness probe returning `status`, `version`, `uptime_seconds`, `db`, and `cache`. Used by the watchdog timer. |
+| `GET` | `/ready` | Deep readiness probe verifying database connectivity and that all Alembic migrations have been applied (`database: ready`, `migrations: current`). Returns 503 if database down or migrations pending. Used during deployments. |
+
 ### Discovery & Search
 | Method | Path | Description |
 |---|---|---|
@@ -290,7 +296,17 @@ Audio extraction from YouTube is intended strictly for private/educational use a
 
 - **Single uvicorn worker:** Because the in-memory cache, `HASH_CONCURRENCY` semaphore, `MAX_CONCURRENT_STREAMS` semaphore, single-flight map, and in-memory bandwidth counters are per-process, **always run a single uvicorn worker** (`--workers 1`).
 - **Bandwidth guard:** `MONTHLY_AUDIO_GB_GLOBAL` defaults to `1500` GB (~30%). Streamed bytes are accumulated in memory and flushed to `audio_usage` every 15 seconds and on clean shutdown. A warning is logged once global usage crosses 80% of the monthly cap.
-- **Backups:** Run `python -m app.tools.backup` from `backend/` (with `.venv` activated) to create a consistent online SQLite snapshot under `./backups/music-YYYYmmdd-HHMMSS.db` (mode `600`), pruning to the newest 7 snapshots by default (`--keep N`).
+- **Admin CLI Tools:**
+  - `python -m app.tools.create_user --email owner@example.com`: Create or reset owner account (prompts for strong password, enforces >=12 chars, revokes existing refresh tokens on reset).
+  - `python -m app.tools.selftest_stream`: Safe CLI stream resolver test verifying yt-dlp functions without logging URLs.
+  - `python -m app.tools.backup`: Online atomic SQLite backup snapshot to `./backups/music-YYYYmmdd-HHMMSS.db`.
+- **Deploy Kit (`deploy/`):** Full production automation for Linux VPS (Ubuntu/Debian) running systemd + Nginx:
+  - Systemd service (`melodia-backend.service`) running under isolated unprivileged user (`melodia`) with `Restart=always` and security hardening.
+  - Health watchdog timer (`melodia-health.timer`) polling `GET /health` every 60 seconds; auto-restarts backend if unresponsive 3 consecutive times.
+  - Nginx site config with separate `/audio` and `/auth` rate-limiting zones and TLS setup via Certbot.
+  - Automated deployment script (`deploy/deploy.sh`) with atomic database backup, Alembic migration, and `/ready` verification with automatic rollback if unhealthy.
+  - Safe yt-dlp updater (`deploy/update_ytdlp.sh`) that verifies stream resolution before keeping the update.
+  - See [`deploy/DEPLOY.md`](deploy/DEPLOY.md) for full setup instructions.
 - **Moving to Postgres later:** Database access uses SQLAlchemy 2.x async and Alembic (`render_as_batch=True`). Update `DATABASE_URL` to a `postgresql+asyncpg://...` URL and run `alembic upgrade head`.
 
 ---

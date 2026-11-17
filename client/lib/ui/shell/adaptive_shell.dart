@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../theme/tokens.dart';
+import '../widgets/connection_status_banner.dart';
 import 'mini_player.dart';
 import 'phone_tab_bar.dart';
 import 'player_bar.dart';
@@ -28,6 +29,7 @@ class AdaptiveShell extends StatelessWidget {
             backgroundColor: tokens.background,
             body: Column(
               children: [
+                const ConnectionStatusBanner(),
                 Expanded(
                   child: Row(
                     children: [
@@ -60,6 +62,7 @@ class AdaptiveShell extends StatelessWidget {
           backgroundColor: tokens.background,
           body: Column(
             children: [
+              const ConnectionStatusBanner(),
               Expanded(child: navigationShell),
               const MiniPlayer(),
               PhoneTabBar(

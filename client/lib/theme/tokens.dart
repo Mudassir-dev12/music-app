@@ -15,6 +15,9 @@ class MelodiaTokens extends ThemeExtension<MelodiaTokens> {
     required this.textTertiary,
     required this.accent,
     required this.destructive,
+    this.statusOnline = const Color(0xFF34C759),
+    this.statusWarning = const Color(0xFFFF9F0A),
+    this.statusOffline = const Color(0xFFFF453A),
     this.transparent = const Color(0x00000000),
   });
 
@@ -28,6 +31,9 @@ class MelodiaTokens extends ThemeExtension<MelodiaTokens> {
   final Color textTertiary;
   final Color accent;
   final Color destructive;
+  final Color statusOnline;
+  final Color statusWarning;
+  final Color statusOffline;
   final Color transparent;
 
   // ── Type scale ───────────────────────────────────────────────────────────
@@ -83,6 +89,9 @@ class MelodiaTokens extends ThemeExtension<MelodiaTokens> {
     textTertiary:  Color(0x4DEBEBF5), // rgba(235,235,245,0.30)
     accent:        Color(0xFFFA233B),
     destructive:   Color(0xFFFF453A),
+    statusOnline:  Color(0xFF30D158),
+    statusWarning: Color(0xFFFF9F0A),
+    statusOffline: Color(0xFFFF453A),
   );
 
   // ── Light palette ────────────────────────────────────────────────────────
@@ -96,6 +105,9 @@ class MelodiaTokens extends ThemeExtension<MelodiaTokens> {
     textTertiary:  Color(0x4D3C3C43), // rgba(60,60,67,0.30)
     accent:        Color(0xFFFA2D48),
     destructive:   Color(0xFFFF453A),
+    statusOnline:  Color(0xFF34C759),
+    statusWarning: Color(0xFFFF9500),
+    statusOffline: Color(0xFFFF3B30),
   );
 
   // ── ThemeExtension overrides ─────────────────────────────────────────────
@@ -110,6 +122,9 @@ class MelodiaTokens extends ThemeExtension<MelodiaTokens> {
     Color? textTertiary,
     Color? accent,
     Color? destructive,
+    Color? statusOnline,
+    Color? statusWarning,
+    Color? statusOffline,
   }) {
     return MelodiaTokens(
       background:    background    ?? this.background,
@@ -121,6 +136,9 @@ class MelodiaTokens extends ThemeExtension<MelodiaTokens> {
       textTertiary:  textTertiary  ?? this.textTertiary,
       accent:        accent        ?? this.accent,
       destructive:   destructive   ?? this.destructive,
+      statusOnline:  statusOnline  ?? this.statusOnline,
+      statusWarning: statusWarning ?? this.statusWarning,
+      statusOffline: statusOffline ?? this.statusOffline,
       transparent:   transparent,
     );
   }
@@ -137,6 +155,9 @@ class MelodiaTokens extends ThemeExtension<MelodiaTokens> {
       textTertiary:  Color.lerp(textTertiary,  other.textTertiary,  t)!,
       accent:        Color.lerp(accent,        other.accent,        t)!,
       destructive:   Color.lerp(destructive,   other.destructive,   t)!,
+      statusOnline:  Color.lerp(statusOnline,  other.statusOnline,  t)!,
+      statusWarning: Color.lerp(statusWarning, other.statusWarning, t)!,
+      statusOffline: Color.lerp(statusOffline, other.statusOffline, t)!,
       transparent:   transparent,
     );
   }

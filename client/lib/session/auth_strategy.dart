@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/auth_api.dart';
 import '../api/errors.dart';
+import '../core/connectivity/connectivity_controller.dart';
 import 'session_controller.dart';
 import 'token_store.dart';
 
@@ -55,6 +56,40 @@ class SilentAuthStrategy implements AuthStrategy {
     final auth = ref.read(authApiProvider);
     final store = ref.read(tokenStoreProvider);
 
+    const delays = [
+      Duration(seconds: 3),
+      Duration(seconds: 6),
+      Duration(seconds: 12),
+      Duration(seconds: 30),
+    ];
+    int delayIndex = 0;
+
+    while (true) {
+      try {
+        await _attemptSignIn(auth, store, session);
+        return;
+      } on StateError {
+        // Configuration errors: fail fast
+        rethrow;
+      } catch (e) {
+        // Server unreachable or network error: notify connectivity and keep retrying
+        ref.read(connectivityProvider.notifier).reportFailure(error: e);
+        session.setConnectingStatus('Connecting to your music server...');
+
+        final delay = delays[delayIndex];
+        if (delayIndex < delays.length - 1) {
+          delayIndex++;
+        }
+        await Future<void>.delayed(delay);
+      }
+    }
+  }
+
+  Future<void> _attemptSignIn(
+    AuthApi auth,
+    TokenStore store,
+    SessionController session,
+  ) async {
     // 1. Try refresh first if a refresh token is present in local store
     final storedRefresh = await store.loadRefreshToken();
     if (storedRefresh != null) {
@@ -63,8 +98,12 @@ class SilentAuthStrategy implements AuthStrategy {
         await store.saveRefreshToken(pair.refreshToken);
         session.setAuthenticatedSession(pair.user, pair.accessToken);
         return;
-      } catch (_) {
-        // Refresh failed; proceed to credentials sign-in
+      } on UnauthorizedError {
+        // Stored refresh token is invalid; clear and continue to credentials
+        await store.clearRefreshToken();
+      } catch (e) {
+        // Network or server error on refresh: rethrow so outer retry loop catches it
+        rethrow;
       }
     }
 
@@ -86,26 +125,39 @@ class SilentAuthStrategy implements AuthStrategy {
         await store.saveRefreshToken(pair.refreshToken);
         session.setAuthenticatedSession(pair.user, pair.accessToken);
         return;
+      } on ForbiddenError {
+        throw StateError(
+          'Registration is closed on this server and credentials are invalid. '
+          'Check dart_defines.json or create an account with create_user.',
+        );
+      } on UnauthorizedError {
+        throw StateError(
+          'Authentication failed: invalid account credentials. Check dart_defines.json.',
+        );
       } on ConflictError {
         throw StateError(
-          'The built-in account exists with a different password. '
+          'The account already exists with a different password. '
           'Check dart_defines.json.',
         );
       } on RateLimitError catch (e) {
         final seconds = e.retryAfterSeconds;
         throw StateError(
-          'Rate limit exceeded. Please retry in $seconds seconds.',
+          'Too many sign-in attempts. Please try again in $seconds seconds.',
         );
       }
     } on ConflictError {
       throw StateError(
-        'The built-in account exists with a different password. '
+        'The account already exists with a different password. '
         'Check dart_defines.json.',
+      );
+    } on ForbiddenError {
+      throw StateError(
+        'Account is disabled or user limit reached on this server.',
       );
     } on RateLimitError catch (e) {
       final seconds = e.retryAfterSeconds;
       throw StateError(
-        'Rate limit exceeded. Please retry in $seconds seconds.',
+        'Too many sign-in attempts. Please try again in $seconds seconds.',
       );
     }
   }

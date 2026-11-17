@@ -21,12 +21,16 @@ class SessionState {
     this.user,
     this.accessToken,
     this.isLoading = false,
+    this.isConnecting = false,
+    this.connectingMessage,
     this.error,
   });
 
   final UserOut? user;
   final String? accessToken;
   final bool isLoading;
+  final bool isConnecting;
+  final String? connectingMessage;
   final String? error;
 
   bool get isSignedIn => user != null && accessToken != null;
@@ -35,6 +39,8 @@ class SessionState {
     UserOut? user,
     String? accessToken,
     bool? isLoading,
+    bool? isConnecting,
+    String? connectingMessage,
     String? error,
     bool clearUser = false,
     bool clearToken = false,
@@ -44,6 +50,8 @@ class SessionState {
       user: clearUser ? null : (user ?? this.user),
       accessToken: clearToken ? null : (accessToken ?? this.accessToken),
       isLoading: isLoading ?? this.isLoading,
+      isConnecting: isConnecting ?? this.isConnecting,
+      connectingMessage: connectingMessage ?? this.connectingMessage,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -99,6 +107,17 @@ class SessionController extends Notifier<SessionState> {
       user: user,
       accessToken: accessToken,
       isLoading: false,
+      isConnecting: false,
+    );
+  }
+
+  /// Sets connecting/retry status on startup when the backend is unreachable.
+  void setConnectingStatus(String message) {
+    state = state.copyWith(
+      isLoading: true,
+      isConnecting: true,
+      connectingMessage: message,
+      clearError: true,
     );
   }
 

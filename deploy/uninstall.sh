@@ -104,3 +104,4 @@ echo "Project files and database (data/music.db) have been kept intact."
 echo "If you wish to remove the system user as well, run:"
 echo "   sudo userdel melodia"
 echo "============================================================"
+

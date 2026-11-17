@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -148,6 +149,52 @@ class MelodiaApp extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     ref.watch(historyOutboxProvider);
 
+    // 1. Release mode configuration guard
+    if (!config.isReleaseConfigured) {
+      return MaterialApp(
+        title: 'Melodia',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark,
+        home: Scaffold(
+          backgroundColor: MelodiaTokens.dark.background,
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingXl),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.settings_suggest_rounded,
+                      size: 56,
+                      color: MelodiaTokens.dark.accent,
+                    ),
+                    const SizedBox(height: MelodiaTokens.spacingLg),
+                    Text(
+                      'This build is not configured',
+                      textAlign: TextAlign.center,
+                      style: MelodiaTokens.title3.copyWith(
+                        color: MelodiaTokens.dark.text,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: MelodiaTokens.spacingMd),
+                    Text(
+                      'This release build of Melodia was compiled without a production server address.\n\nPlease rebuild with:\n--dart-define=API_URL=https://music-api.yourdomain.com',
+                      textAlign: TextAlign.center,
+                      style: MelodiaTokens.subhead.copyWith(
+                        color: MelodiaTokens.dark.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     if (session.isLoading) {
       return MaterialApp(
         title: 'Melodia',
@@ -158,9 +205,33 @@ class MelodiaApp extends ConsumerWidget {
         home: Scaffold(
           backgroundColor: MelodiaTokens.dark.background,
           body: Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                MelodiaTokens.dark.accent,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingXl),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      MelodiaTokens.dark.accent,
+                    ),
+                  ),
+                  const SizedBox(height: MelodiaTokens.spacingLg),
+                  Text(
+                    session.connectingMessage ?? 'Connecting to your music server...',
+                    textAlign: TextAlign.center,
+                    style: MelodiaTokens.headline.copyWith(
+                      color: MelodiaTokens.dark.text,
+                    ),
+                  ),
+                  const SizedBox(height: MelodiaTokens.spacingLg),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Retry Now'),
+                    onPressed: () {
+                      ref.invalidate(sessionProvider);
+                    },
+                  ),
+                ],
               ),
             ),
           ),
@@ -174,6 +245,10 @@ class MelodiaApp extends ConsumerWidget {
           err.toLowerCase().contains('connection') ||
           err.toLowerCase().contains('socket') ||
           err.toLowerCase().contains('timeout');
+
+      final displayMessage = isNetwork
+          ? "Can't reach the music server. Check your connection; we'll keep trying."
+          : err;
 
       return MaterialApp(
         title: 'Melodia',
@@ -206,8 +281,8 @@ class MelodiaApp extends ConsumerWidget {
                         const SizedBox(height: MelodiaTokens.spacingLg),
                         Text(
                           isNetwork
-                              ? 'Cannot Connect to Server'
-                              : 'Authentication Error',
+                              ? "Can't Reach Server"
+                              : 'Configuration Error',
                           textAlign: TextAlign.center,
                           style: MelodiaTokens.title3.copyWith(
                             color: MelodiaTokens.dark.text,
@@ -237,14 +312,21 @@ class MelodiaApp extends ConsumerWidget {
                         ),
                         const SizedBox(height: MelodiaTokens.spacingMd),
                         Text(
-                          isNetwork
-                              ? 'Your internet is working, but the app cannot connect to your Melodia music server.\n\nMake sure the backend is running on your computer:\npython -m uvicorn app.main:app --host 0.0.0.0 --port 8000'
-                              : session.error!,
+                          displayMessage,
                           textAlign: TextAlign.center,
                           style: MelodiaTokens.subhead.copyWith(
                             color: MelodiaTokens.dark.textSecondary,
                           ),
                         ),
+                        if (kDebugMode && !isNetwork) ...[
+                          const SizedBox(height: MelodiaTokens.spacingSm),
+                          Text(
+                            'Host: ${Uri.tryParse(config.apiUrl)?.host ?? config.apiUrl}',
+                            style: MelodiaTokens.caption.copyWith(
+                              color: MelodiaTokens.dark.textTertiary,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: MelodiaTokens.spacingXl),
                         FilledButton.icon(
                           icon: const Icon(Icons.refresh_rounded, size: 18),

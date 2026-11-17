@@ -212,3 +212,4 @@ These steps cannot be automated safely without your VPS environment access:
    # In sudo crontab -e:
    0 3 * * * cd /var/www/music-app/backend && sudo -u melodia .venv/bin/python -m app.tools.backup >> /var/log/melodia-backup.log 2>&1
    ```
+

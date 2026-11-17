@@ -1,6 +1,7 @@
 {
+  "API_URL": "https://music-api.example.com",
   "LOCAL_EMAIL": "local_owner@example.com",
   "LOCAL_PASSWORD": "ChangeThisPassword123!",
   "LOCAL_INVITE_CODE": "YOUR_OPTIONAL_INVITE_CODE",
-  "ALLOW_SILENT_LOGIN_IN_RELEASE": false
+  "ALLOW_SILENT_LOGIN_IN_RELEASE": true
 }

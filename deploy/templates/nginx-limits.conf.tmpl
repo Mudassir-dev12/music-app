@@ -1,3 +1,4 @@
 # Rate-limiting zones for Melodia
 limit_req_zone $binary_remote_addr zone=melodia_auth:2m rate=10r/m;
 limit_req_zone $binary_remote_addr zone=melodia_api:5m rate=300r/m;
+

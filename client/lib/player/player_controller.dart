@@ -7,6 +7,7 @@ import '../api/api_client.dart';
 import '../api/discovery_api.dart';
 import '../api/errors.dart';
 import '../api/models.dart';
+import '../core/connectivity/connectivity_controller.dart';
 import '../core/platform/media_session.dart';
 import 'audio_handler.dart';
 import 'audio_url_service.dart';
@@ -36,6 +37,21 @@ class PlayerController extends Notifier<PlayerStateData> {
   double _lastVolumeBeforeMute = 1.0;
   DateTime _lastPositionUpdateTime = DateTime.now();
   String? toastMessage;
+
+  // Auto-resume state on network recovery
+  bool _wasPlayingBeforeNetworkFailure = false;
+  Duration _failurePosition = Duration.zero;
+  int _autoResumeAttempts = 0;
+
+  @visibleForTesting
+  bool get wasPlayingBeforeNetworkFailure => _wasPlayingBeforeNetworkFailure;
+  @visibleForTesting
+  int get autoResumeAttempts => _autoResumeAttempts;
+  @visibleForTesting
+  void simulateNetworkFailureForTesting(Duration position) {
+    _wasPlayingBeforeNetworkFailure = true;
+    _failurePosition = position;
+  }
 
   @override
   PlayerStateData build() {
@@ -69,6 +85,13 @@ class PlayerController extends Notifier<PlayerStateData> {
     _audioHandler.playerStateStream.listen((ps) {
       if (ps.processingState.name == 'completed') {
         _onTrackEnded();
+      }
+    });
+
+    // Listen to connectivity restoration for auto-resume
+    ref.listen<ConnectivityState>(connectivityProvider, (previous, next) {
+      if (previous?.isOnline == false && next.isOnline) {
+        _onConnectivityRestored();
       }
     });
 
@@ -166,6 +189,8 @@ class PlayerController extends Notifier<PlayerStateData> {
 
       _consecutiveErrors = 0;
       _lastErrorVideoId = null;
+      _wasPlayingBeforeNetworkFailure = false;
+      _autoResumeAttempts = 0;
 
       state = state.copyWith(
         status: PlayerStatus.playing,
@@ -188,11 +213,27 @@ class PlayerController extends Notifier<PlayerStateData> {
         errorMessage: 'Bandwidth limit reached. Try again in ${e.retryAfterSeconds}s',
       );
     } catch (e) {
+      final isOffline = !ref.read(connectivityProvider).isOnline;
+      if (isOffline || isNetworkError(e)) {
+        _wasPlayingBeforeNetworkFailure = true;
+        _failurePosition = resumeAt ?? state.position;
+      }
       await _handlePlaybackError(current, resumeAt ?? state.position);
     }
   }
 
   Future<void> _handlePlaybackError(Track track, Duration position) async {
+    final isOffline = !ref.read(connectivityProvider).isOnline;
+    if (isOffline) {
+      _wasPlayingBeforeNetworkFailure = true;
+      _failurePosition = position;
+      state = state.copyWith(
+        status: PlayerStatus.paused,
+        errorMessage: 'Connection lost. Playback will resume when back online.',
+      );
+      return;
+    }
+
     _consecutiveErrors++;
 
     if (_lastErrorVideoId != track.videoId) {
@@ -223,6 +264,26 @@ class PlayerController extends Notifier<PlayerStateData> {
     await skipNext();
   }
 
+  Future<void> _onConnectivityRestored() async {
+    if (!_wasPlayingBeforeNetworkFailure) return;
+
+    if (_autoResumeAttempts >= 5) {
+      _wasPlayingBeforeNetworkFailure = false;
+      state = state.copyWith(
+        status: PlayerStatus.paused,
+        errorMessage: 'Playback paused. Tap play to retry.',
+      );
+      return;
+    }
+
+    _autoResumeAttempts++;
+    final current = state.queue.currentTrack;
+    if (current != null) {
+      _urlService.invalidate(current.videoId);
+      await _loadAndPlayCurrent(resumeAt: _failurePosition);
+    }
+  }
+
   Future<void> togglePlayPause() async {
     if (!kIsWeb) {
       try {
@@ -240,6 +301,8 @@ class PlayerController extends Notifier<PlayerStateData> {
   }
 
   Future<void> pause() async {
+    _wasPlayingBeforeNetworkFailure = false;
+    _autoResumeAttempts = 0;
     await _audioHandler.pause();
     state = state.copyWith(status: PlayerStatus.paused);
     MediaSessionService.updatePlaybackState(playing: false);

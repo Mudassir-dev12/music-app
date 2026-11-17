@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/config.dart' as config;
+import '../../core/connectivity/connectivity_controller.dart';
 import '../../data/user_data_providers.dart';
 import '../../player/autoplay_controller.dart';
 import '../../theme/theme_controller.dart';
@@ -156,11 +157,10 @@ class SettingsScreen extends ConsumerWidget {
 
           // 2. PLAYBACK
           _buildSectionHeader(tokens, 'PLAYBACK'),
-          Container(
-            decoration: BoxDecoration(
-              color: tokens.surface,
-              borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
-            ),
+          Material(
+            color: tokens.surface,
+            borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+            clipBehavior: Clip.antiAlias,
             child: SwitchListTile.adaptive(
               secondary: Icon(Icons.autorenew_rounded, color: tokens.accent),
               title: Text(
@@ -182,11 +182,10 @@ class SettingsScreen extends ConsumerWidget {
 
           // 3. LIBRARY
           _buildSectionHeader(tokens, 'LIBRARY'),
-          Container(
-            decoration: BoxDecoration(
-              color: tokens.surface,
-              borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
-            ),
+          Material(
+            color: tokens.surface,
+            borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
                 ListTile(
@@ -229,11 +228,10 @@ class SettingsScreen extends ConsumerWidget {
 
           // 3. ACCOUNT
           _buildSectionHeader(tokens, 'ACCOUNT'),
-          Container(
-            decoration: BoxDecoration(
-              color: tokens.surface,
-              borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
-            ),
+          Material(
+            color: tokens.surface,
+            borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+            clipBehavior: Clip.antiAlias,
             child: ListTile(
               leading: Icon(
                 Icons.person_outline_rounded,
@@ -274,11 +272,10 @@ class SettingsScreen extends ConsumerWidget {
 
           // 4. ABOUT
           _buildSectionHeader(tokens, 'ABOUT'),
-          Container(
-            decoration: BoxDecoration(
-              color: tokens.surface,
-              borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
-            ),
+          Material(
+            color: tokens.surface,
+            borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
                 ListTile(
@@ -292,6 +289,90 @@ class SettingsScreen extends ConsumerWidget {
                       color: tokens.textSecondary,
                     ),
                   ),
+                ),
+                Divider(
+                  color: tokens.separator,
+                  height: 0.5,
+                  indent: 16,
+                ),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final conn = ref.watch(connectivityProvider);
+                    final dotColor = switch (conn.status) {
+                      ConnectivityStatus.online => tokens.statusOnline,
+                      ConnectivityStatus.reconnecting => tokens.statusWarning,
+                      ConnectivityStatus.serverDown => tokens.statusOffline,
+                      ConnectivityStatus.noInternet => tokens.statusOffline,
+                    };
+                    final statusLabel = switch (conn.status) {
+                      ConnectivityStatus.online => conn.latency != null
+                          ? 'Online (${conn.latency!.inMilliseconds} ms)'
+                          : 'Online',
+                      ConnectivityStatus.reconnecting => 'Reconnecting...',
+                      ConnectivityStatus.serverDown => 'Server unreachable',
+                      ConnectivityStatus.noInternet => 'No internet',
+                    };
+                    final serverDisplay = kReleaseMode
+                        ? (Uri.tryParse(config.apiUrl)?.host.isNotEmpty == true
+                            ? Uri.parse(config.apiUrl).host
+                            : config.apiUrl)
+                        : config.apiUrl;
+                    final versionLabel = conn.serverVersion != null
+                        ? 'Backend v${conn.serverVersion}'
+                        : 'Backend status';
+
+                    return ListTile(
+                      leading: Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        'Server Status',
+                        style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                      ),
+                      subtitle: Text(
+                        '$serverDisplay\n$statusLabel • $versionLabel',
+                        style: MelodiaTokens.caption.copyWith(color: tokens.textSecondary),
+                      ),
+                      isThreeLine: true,
+                      trailing: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: tokens.separator),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: () async {
+                          final ok = await ref.read(connectivityProvider.notifier).retryNow();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  ok ? 'Server connection verified' : 'Could not reach server',
+                                  style: MelodiaTokens.footnote.copyWith(color: tokens.text),
+                                ),
+                                backgroundColor: tokens.surface2,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                        child: Text(
+                          'Test connection',
+                          style: MelodiaTokens.caption.copyWith(
+                            color: tokens.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 if (kDebugMode) ...[
                   Divider(
