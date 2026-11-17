@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     DAILY_AUDIO_MB_PER_USER: int = 68266
     MONTHLY_AUDIO_GB_GLOBAL: int = 2048
 
-    STREAM_URL_TTL: int = 3000
+    STREAM_URL_TTL: int = 21600
     SEARCH_TTL: int = 900
     META_TTL: int = 86400
 

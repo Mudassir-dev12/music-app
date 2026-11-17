@@ -80,11 +80,9 @@ class MelodiaAudioHandler extends BaseAudioHandler with SeekHandler {
 
   Future<Duration?> playUrl(String url, {Duration? initialPosition}) async {
     try {
-      final duration = await _player.setUrl(url);
-      if (initialPosition != null && initialPosition > Duration.zero) {
-        await _player.seek(initialPosition);
-      }
-      await _player.play();
+      final setUrlFuture = _player.setUrl(url, initialPosition: initialPosition);
+      _player.play();
+      final duration = await setUrlFuture;
       return duration;
     } catch (e) {
       rethrow;

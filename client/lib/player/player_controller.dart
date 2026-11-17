@@ -127,8 +127,8 @@ class PlayerController extends Notifier<PlayerStateData> {
       ));
     }
 
-    // Warm-up: when > 50%, request ticket + HEAD request for next track
-    if (!_warmedUpNextTrack && progressFraction >= 0.5) {
+    // Warm-up next track early (after 5 seconds or 10% progress) so skip/next is instant
+    if (!_warmedUpNextTrack && (pos.inSeconds >= 5 || progressFraction >= 0.1)) {
       _warmedUpNextTrack = true;
       _warmUpNextTrack();
     }

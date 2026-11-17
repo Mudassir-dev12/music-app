@@ -158,9 +158,16 @@ class YTMusicSource(MusicSource):
             "no_warnings": True,
             "noplaylist": True,
             "skip_download": True,
-            "socket_timeout": 15,
-            "retries": 2,
-            "cachedir": False,
+            "socket_timeout": 10,
+            "retries": 1,
+            "cachedir": "/var/www/music-app/.cache/yt-dlp",
+            "youtube_include_dash_manifest": False,
+            "youtube_include_hls_manifest": False,
+            "extractor_args": {
+                "youtube": {
+                    "player_skip": ["webpage", "configs"],
+                }
+            },
         }
         node_path = shutil.which("node")
         if node_path:
