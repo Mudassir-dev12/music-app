@@ -17,7 +17,7 @@ const _kRawApiUrl = String.fromEnvironment('API_URL');
 
 String _configuredApiUrl = _kRawApiUrl.isNotEmpty
     ? _kRawApiUrl
-    : 'http://$_kDefaultHost:$_kDefaultPort';
+    : 'https://music.muhammadrehan-dev.me';
 
 String get apiUrl => _configuredApiUrl;
 

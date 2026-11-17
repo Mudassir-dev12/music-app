@@ -37,7 +37,7 @@ class SilentAuthStrategy implements AuthStrategy {
   static const String localInviteCode =
       String.fromEnvironment('LOCAL_INVITE_CODE', defaultValue: '');
   static const bool allowSilentInRelease =
-      bool.fromEnvironment('ALLOW_SILENT_LOGIN_IN_RELEASE', defaultValue: false);
+      bool.fromEnvironment('ALLOW_SILENT_LOGIN_IN_RELEASE', defaultValue: true);
 
   @override
   bool get needsUi => false;
