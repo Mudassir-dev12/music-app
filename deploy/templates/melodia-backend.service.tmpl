@@ -1,0 +1,38 @@
+[Unit]
+Description=Melodia music backend
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User={{USER}}
+Group={{USER}}
+WorkingDirectory={{ROOT}}/backend
+EnvironmentFile={{ROOT}}/backend/.env
+Environment=HOME={{ROOT}}/.home XDG_CACHE_HOME={{ROOT}}/.cache TMPDIR={{ROOT}}/.tmp PYTHONDONTWRITEBYTECODE=1
+Environment=PATH={{NODE_DIR}}:{{ROOT}}/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart={{ROOT}}/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port {{PORT}} --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1 --timeout-graceful-shutdown 20
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+# resource limits so a busy music app cannot starve the other projects
+MemoryHigh=600M
+MemoryMax=800M
+CPUQuota=100%
+TasksMax=256
+LimitNOFILE=4096
+# hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths={{ROOT}}/data {{ROOT}}/backups {{ROOT}}/.tmp {{ROOT}}/.home {{ROOT}}/.cache
+
+[Install]
+WantedBy=multi-user.target

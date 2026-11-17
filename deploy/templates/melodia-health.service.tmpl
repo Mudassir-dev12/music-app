@@ -1,0 +1,7 @@
+[Unit]
+Description=Melodia health watchdog service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash {{ROOT}}/deploy/healthcheck.sh --port {{PORT}}
