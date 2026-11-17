@@ -152,30 +152,23 @@ class YTMusicSource(MusicSource):
         return {}
 
     def _sync_resolve_stream(self, video_id: str) -> ResolvedStream:
+        node_path = shutil.which("node") or "/usr/local/bin/node"
         ydl_opts: dict[str, Any] = {
-            "format": "bestaudio[ext=m4a]/bestaudio",
+            "format": "bestaudio[ext=m4a]/bestaudio/best[acodec!=none]/best",
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True,
             "skip_download": True,
-            "socket_timeout": 10,
-            "retries": 1,
+            "socket_timeout": 15,
+            "retries": 2,
             "cachedir": "/var/www/music-app/.cache/yt-dlp",
-            "youtube_include_dash_manifest": False,
-            "youtube_include_hls_manifest": False,
-            "extractor_args": {
-                "youtube": {
-                    "player_skip": ["webpage", "configs"],
-                }
-            },
         }
-        node_path = shutil.which("node")
-        if node_path:
+        if node_path and os.path.exists(node_path):
             ydl_opts["js_runtimes"] = {"node": {"path": node_path}}
         cookie_path = os.getenv("YTDLP_COOKIES_FILE", "/var/www/music-app/data/cookies.txt")
         if os.path.exists(cookie_path):
             ydl_opts["cookiefile"] = cookie_path
-        proxy = os.getenv("YTDLP_PROXY")
+        proxy = os.getenv("YTDLP_PROXY") or getattr(settings, "UPSTREAM_PROXY", None)
         if proxy:
             ydl_opts["proxy"] = proxy
         url = f"https://www.youtube.com/watch?v={video_id}"

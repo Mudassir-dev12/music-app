@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     STREAM_URL_TTL: int = 21600
     SEARCH_TTL: int = 900
     META_TTL: int = 86400
+    UPSTREAM_PROXY: str = ""
 
     # Phase 3: User Data Limits
     MAX_PLAYLISTS_PER_USER: int = 200

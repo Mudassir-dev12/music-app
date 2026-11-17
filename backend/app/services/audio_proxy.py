@@ -54,7 +54,8 @@ class AudioProxy:
     ) -> Response:
         stream_info = await self.resolver.get_stream(video_id)
 
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        proxy_url = getattr(settings, "UPSTREAM_PROXY", None) or None
+        async with httpx.AsyncClient(proxy=proxy_url, timeout=10.0, follow_redirects=True) as client:
             resp = await self._fetch_upstream(
                 client, stream_info, range_header, method="HEAD"
             )
@@ -100,7 +101,8 @@ class AudioProxy:
         self._acquire_semaphore_nonblocking()
         semaphore_acquired = True
 
-        client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
+        proxy_url = getattr(settings, "UPSTREAM_PROXY", None) or None
+        client = httpx.AsyncClient(proxy=proxy_url, timeout=30.0, follow_redirects=True)
         upstream_resp: Optional[httpx.Response] = None
 
         try:
