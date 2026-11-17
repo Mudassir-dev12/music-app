@@ -92,7 +92,11 @@ class ApiClient {
       final prefs = await SharedPreferences.getInstance();
       final customUrl = prefs.getString('custom_api_url');
       if (customUrl != null && customUrl.isNotEmpty) {
-        updateBaseUrl(customUrl);
+        if (customUrl.contains('192.168.') || customUrl.contains('10.0.2.2') || customUrl.contains('127.0.0.1')) {
+          await prefs.remove('custom_api_url');
+        } else {
+          updateBaseUrl(customUrl);
+        }
       }
     } catch (_) {}
   }
