@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     META_TTL: int = 86400
     UPSTREAM_PROXY: str = ""
 
+    # Audio Disk Cache
+    AUDIO_CACHE_DIR: str = "/var/www/music-app/data/audio_cache"
+    AUDIO_CACHE_MAX_GB: int = 15
+
     # Phase 3: User Data Limits
     MAX_PLAYLISTS_PER_USER: int = 200
     MAX_TRACKS_PER_PLAYLIST: int = 5000
