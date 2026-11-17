@@ -11,7 +11,21 @@ import '../api/models.dart';
 /// Handles single-source playback (URLs resolved lazily with tickets) and
 /// maps lock-screen / notification controls to callbacks or internal state.
 class MelodiaAudioHandler extends BaseAudioHandler with SeekHandler {
-  MelodiaAudioHandler({AudioPlayer? player}) : _player = player ?? AudioPlayer() {
+  MelodiaAudioHandler({AudioPlayer? player})
+      : _player = player ??
+            AudioPlayer(
+              audioLoadConfiguration: const AudioLoadConfiguration(
+                androidLoadControl: AndroidLoadControl(
+                  minBufferDuration: Duration(seconds: 4),
+                  maxBufferDuration: Duration(seconds: 30),
+                  bufferForPlaybackDuration: Duration(milliseconds: 200),
+                  bufferForPlaybackAfterRebufferDuration: Duration(milliseconds: 400),
+                ),
+                darwinLoadControl: DarwinLoadControl(
+                  automaticallyWaitsToMinimizeStalling: false,
+                ),
+              ),
+            ) {
     _init();
   }
 

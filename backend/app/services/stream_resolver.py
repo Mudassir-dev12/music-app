@@ -9,6 +9,16 @@ from app.sources.models import ResolvedStream
 
 logger = logging.getLogger("music_app.stream_resolver")
 
+_default_stream_resolver: Optional["StreamResolver"] = None
+
+
+def get_stream_resolver() -> "StreamResolver":
+    global _default_stream_resolver
+    if _default_stream_resolver is None:
+        from app.sources.ytmusic import YTMusicSource
+        _default_stream_resolver = StreamResolver(YTMusicSource())
+    return _default_stream_resolver
+
 
 class StreamResolver:
     def __init__(self, source: MusicSource):

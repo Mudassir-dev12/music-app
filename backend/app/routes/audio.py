@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, Depends, Header, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,11 +9,11 @@ from app.ratelimit import audio_rate_limiter, rate_limiter
 from app.routes.search import ytmusic_source
 from app.routes.tracks import validate_video_id
 from app.services.audio_proxy import AudioProxy
-from app.services.stream_resolver import StreamResolver
+from app.services.stream_resolver import StreamResolver, get_stream_resolver
 
 router = APIRouter(prefix="/audio", tags=["audio"])
 
-stream_resolver = StreamResolver(ytmusic_source)
+stream_resolver = get_stream_resolver()
 audio_proxy = AudioProxy(stream_resolver)
 
 
@@ -27,6 +28,8 @@ async def create_ticket(
     user: User = Depends(rate_limiter),
 ):
     validate_video_id(video_id)
+    # Pre-resolve stream in the background immediately so it is ready before GET arrives
+    asyncio.create_task(stream_resolver.get_stream(video_id))
     ticket, expires_in = create_audio_ticket(user.id, video_id)
     return AudioTicketOut(
         url=f"/audio/{video_id}?t={ticket}",

@@ -207,6 +207,9 @@ class PlayerController extends Notifier<PlayerStateData> {
 
       _persistence.addToRecentlyPlayed(current);
       _persistence.saveStateDebounced(state);
+
+      // Immediately warm up next track so transition / skip is instant
+      _warmUpNextTrack();
     } on RateLimitError catch (e) {
       state = state.copyWith(
         status: PlayerStatus.paused,

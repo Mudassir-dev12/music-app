@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 from typing import Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -8,6 +9,7 @@ from app.db.models import User
 from app.db.session import get_db_session
 from app.ratelimit import rate_limiter
 from app.services.discovery_service import default_discovery_service
+from app.services.stream_resolver import get_stream_resolver
 from app.services.tracks import upsert_tracks
 from app.sources.models import (
     SearchFilterResponse,
@@ -69,6 +71,13 @@ async def search_music(
         response.headers["X-Cache"] = "miss"
         await cache.set(cache_key, result.model_dump(), ttl=settings.SEARCH_TTL)
         await upsert_tracks(db, result.results)
+
+        # Pre-warm top 2 tracks in background for instant playback when clicked
+        resolver = get_stream_resolver()
+        for t in result.results[:2]:
+            if getattr(t, "videoId", None):
+                asyncio.create_task(resolver.get_stream(t.videoId))
+
         return result
 
     # 2. Filter in albums, artists, playlists
@@ -80,6 +89,14 @@ async def search_music(
             limit=limit,
         )
         response.headers["X-Cache"] = cache_status
+
+        # Pre-warm top 2 tracks from grouped songs in background
+        if hasattr(res, "songs") and res.songs:
+            resolver = get_stream_resolver()
+            for t in res.songs[:2]:
+                if getattr(t, "videoId", None):
+                    asyncio.create_task(resolver.get_stream(t.videoId))
+
         return res
 
     # 3. No filter or empty filter -> Grouped search
@@ -89,6 +106,14 @@ async def search_music(
             query=trimmed_q,
         )
         response.headers["X-Cache"] = cache_status
+
+        # Pre-warm top 2 tracks from grouped songs in background
+        if hasattr(res, "songs") and res.songs:
+            resolver = get_stream_resolver()
+            for t in res.songs[:2]:
+                if getattr(t, "videoId", None):
+                    asyncio.create_task(resolver.get_stream(t.videoId))
+
         return res
 
     # 4. Unknown filter
