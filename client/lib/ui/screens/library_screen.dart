@@ -123,6 +123,21 @@ class LibraryScreen extends ConsumerWidget {
             icon: Icon(Icons.add_rounded, color: tokens.accent, size: 28),
             onPressed: () => _showNewPlaylistDialog(context, ref),
           ),
+          Padding(
+            padding: const EdgeInsets.only(right: MelodiaTokens.spacingMd),
+            child: GestureDetector(
+              onTap: () => context.push('/settings'),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: tokens.surface2,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.person_rounded, color: tokens.accent, size: 20),
+              ),
+            ),
+          ),
         ],
       ),
       body: RefreshIndicator(

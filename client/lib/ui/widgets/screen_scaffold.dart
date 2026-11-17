@@ -26,32 +26,26 @@ class ScreenScaffold extends StatelessWidget {
             SliverAppBar(
               backgroundColor: tokens.background,
               pinned: true,
-              expandedHeight: 100,
               elevation: 0,
               scrolledUnderElevation: 0,
+              title: Text(
+                title,
+                style: MelodiaTokens.title1.copyWith(
+                  color: tokens.text,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              centerTitle: false,
               actions: trailing != null
                   ? [
                       Padding(
                         padding: const EdgeInsets.only(
                           right: MelodiaTokens.spacingLg,
                         ),
-                        child: trailing!,
+                        child: Center(child: trailing!),
                       ),
                     ]
                   : null,
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(
-                  left: MelodiaTokens.spacingLg,
-                  bottom: MelodiaTokens.spacingMd,
-                ),
-                title: Text(
-                  title,
-                  style: MelodiaTokens.headline.copyWith(
-                    color: tokens.text,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
             ),
             ...slivers,
           ],

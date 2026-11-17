@@ -43,10 +43,12 @@ class MediaItemCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<MelodiaTokens>()!;
     final isArtist = item.type == MediaItemType.artist;
+    final cardWidth = isArtist ? (width > 110 ? 100.0 : width) : width;
+    final imageSize = isArtist ? 88.0 : cardWidth;
 
     final imageWidget = Container(
-      width: width,
-      height: width,
+      width: imageSize,
+      height: imageSize,
       decoration: BoxDecoration(
         color: tokens.surface2,
         shape: isArtist ? BoxShape.circle : BoxShape.rectangle,
@@ -57,7 +59,7 @@ class MediaItemCard extends ConsumerWidget {
       ),
       child: ClipRRect(
         borderRadius: isArtist
-            ? BorderRadius.circular(width / 2)
+            ? BorderRadius.circular(imageSize / 2)
             : BorderRadius.circular(MelodiaTokens.radiusCard),
         child: item.thumbnail != null && item.thumbnail!.isNotEmpty
             ? CachedNetworkImage(
@@ -66,13 +68,13 @@ class MediaItemCard extends ConsumerWidget {
                 placeholder: (_, __) => Container(color: tokens.surface2),
                 errorWidget: (_, __, ___) => Icon(
                   isArtist ? Icons.person_rounded : Icons.music_note_rounded,
-                  size: 48,
+                  size: isArtist ? 36 : 48,
                   color: tokens.textTertiary,
                 ),
               )
             : Icon(
                 isArtist ? Icons.person_rounded : Icons.music_note_rounded,
-                size: 48,
+                size: isArtist ? 36 : 48,
                 color: tokens.textTertiary,
               ),
       ),
@@ -84,7 +86,7 @@ class MediaItemCard extends ConsumerWidget {
       child: GestureDetector(
         onTap: onTap ?? () => _defaultTap(context, ref),
         child: SizedBox(
-          width: width,
+          width: cardWidth,
           child: Column(
             crossAxisAlignment: isArtist
                 ? CrossAxisAlignment.center

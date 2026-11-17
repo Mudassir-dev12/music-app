@@ -1,18 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-const _kDefaultPort = 8000;
-
-String get _kDefaultHost {
-  if (kIsWeb ||
-      defaultTargetPlatform == TargetPlatform.windows ||
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.linux) {
-    return '127.0.0.1';
-  }
-  // On mobile devices (Android / iOS): connect to computer's Wi-Fi LAN IP
-  return '192.168.137.92';
-}
-
 const _kRawApiUrl = String.fromEnvironment('API_URL');
 
 String _configuredApiUrl = _kRawApiUrl.isNotEmpty

@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../api/models.dart';
 import '../../data/user_data_providers.dart';
 import '../../player/player_controller.dart';
-import '../../player/player_state.dart';
 import '../../theme/tokens.dart';
 import '../widgets/add_to_playlist_sheet.dart';
 import '../widgets/empty_state.dart';
@@ -180,7 +179,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final historyAsync = ref.watch(historyProvider);
     final playerState = ref.watch(playerControllerProvider);
     final currentVid = playerState.queue.currentTrack?.videoId;
-    final isPlaying = playerState.status == PlayerStatus.playing;
+    final isPlaying = playerState.isPlaying;
 
     return Scaffold(
       backgroundColor: tokens.background,

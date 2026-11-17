@@ -41,7 +41,9 @@ class DesktopPlayerBar extends ConsumerWidget {
       );
     }
 
-    final isPlaying = playerState.status == PlayerStatus.playing;
+    final isPlaying = playerState.status == PlayerStatus.playing ||
+        playerState.status == PlayerStatus.loading ||
+        playerState.status == PlayerStatus.buffering;
     final isShuffle = playerState.queue.shuffle;
     final repeatMode = playerState.queue.repeat;
 

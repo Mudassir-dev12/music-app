@@ -33,42 +33,93 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/listen-now',
     routes: [
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return AdaptiveShell(navigationShell: navigationShell);
+      ShellRoute(
+        builder: (context, state, child) {
+          final path = state.uri.path;
+          int index = 0;
+          if (path.startsWith('/browse') || path.startsWith('/mood')) {
+            index = 1;
+          } else if (path.startsWith('/library') || path.startsWith('/playlist')) {
+            index = 2;
+          } else if (path.startsWith('/search')) {
+            index = 3;
+          }
+          return AdaptiveShell(
+            currentIndex: index,
+            onTap: (i) {
+              switch (i) {
+                case 0:
+                  context.go('/listen-now');
+                  break;
+                case 1:
+                  context.go('/browse');
+                  break;
+                case 2:
+                  context.go('/library');
+                  break;
+                case 3:
+                  context.go('/search');
+                  break;
+              }
+            },
+            child: child,
+          );
         },
-        branches: [
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/listen-now',
-                builder: (context, state) => const ListenNowScreen(),
-              ),
-            ],
+        routes: [
+          GoRoute(
+            path: '/listen-now',
+            builder: (context, state) => const ListenNowScreen(),
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/browse',
-                builder: (context, state) => const BrowseScreen(),
-              ),
-            ],
+          GoRoute(
+            path: '/browse',
+            builder: (context, state) => const BrowseScreen(),
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/library',
-                builder: (context, state) => const LibraryScreen(),
-              ),
-            ],
+          GoRoute(
+            path: '/library',
+            builder: (context, state) => const LibraryScreen(),
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/search',
-                builder: (context, state) => const SearchScreen(),
-              ),
-            ],
+          GoRoute(
+            path: '/search',
+            builder: (context, state) => const SearchScreen(),
+          ),
+          GoRoute(
+            path: '/playlist/:id',
+            builder: (context, state) => PlaylistScreen(
+              playlistId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/album/:id',
+            builder: (context, state) => AlbumScreen(
+              albumId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/artist/:id',
+            builder: (context, state) => ArtistScreen(
+              artistId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/ytplaylist/:id',
+            builder: (context, state) => YtPlaylistScreen(
+              playlistId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/mood/:params',
+            builder: (context, state) => MoodPlaylistsScreen(
+              params: state.pathParameters['params']!,
+              title: state.uri.queryParameters['title'] ?? 'Mood',
+            ),
+          ),
+          GoRoute(
+            path: '/history',
+            builder: (context, state) => const HistoryScreen(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsScreen(),
           ),
         ],
       ),
@@ -87,52 +138,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           fullscreenDialog: true,
           child: QueuePanelScreen(),
         ),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/playlist/:id',
-        builder: (context, state) => PlaylistScreen(
-          playlistId: state.pathParameters['id']!,
-        ),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/album/:id',
-        builder: (context, state) => AlbumScreen(
-          albumId: state.pathParameters['id']!,
-        ),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/artist/:id',
-        builder: (context, state) => ArtistScreen(
-          artistId: state.pathParameters['id']!,
-        ),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/ytplaylist/:id',
-        builder: (context, state) => YtPlaylistScreen(
-          playlistId: state.pathParameters['id']!,
-        ),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/mood/:params',
-        builder: (context, state) => MoodPlaylistsScreen(
-          params: state.pathParameters['params']!,
-          title: state.uri.queryParameters['title'] ?? 'Mood',
-        ),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/history',
-        builder: (context, state) => const HistoryScreen(),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
       ),
     ],
   );

@@ -38,13 +38,24 @@ class ListenNowScreen extends ConsumerWidget {
 
     final settingsButton = GestureDetector(
       onTap: () => context.push('/settings'),
-      child: CircleAvatar(
-        radius: 18,
-        backgroundColor: tokens.accent,
-        child: Icon(
-          Icons.person_rounded,
-          color: tokens.text,
-          size: 20,
+      child: Tooltip(
+        message: 'Settings & Profile',
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: tokens.surface2,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: tokens.separator,
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            Icons.person_rounded,
+            color: tokens.accent,
+            size: 22,
+          ),
         ),
       ),
     );
@@ -57,7 +68,34 @@ class ListenNowScreen extends ConsumerWidget {
         homeFeedAsync.when(
           data: (shelves) {
             if (shelves.isEmpty) {
-              return const SliverToBoxAdapter(child: SizedBox.shrink());
+              // Fallback to charts preview if home feed returned no shelves
+              return chartsAsync.maybeWhen(
+                data: (chartShelves) {
+                  if (chartShelves.isEmpty) {
+                    return const SliverToBoxAdapter(child: SizedBox.shrink());
+                  }
+                  final topShelf = chartShelves.first;
+                  return SliverList(
+                    delegate: SliverChildListDelegate([
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingLg),
+                        child: SectionHeader(
+                          title: 'Top Hits',
+                          subtitle: topShelf.subtitle ?? 'Trending music for you',
+                        ),
+                      ),
+                      const SizedBox(height: MelodiaTokens.spacingMd),
+                      AlbumCarousel(
+                        children: topShelf.items.map((item) {
+                          return MediaItemCard(item: item, width: 170);
+                        }).toList(),
+                      ),
+                      const SizedBox(height: MelodiaTokens.spacingXl),
+                    ]),
+                  );
+                },
+                orElse: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+              );
             }
 
             final widgets = <Widget>[];

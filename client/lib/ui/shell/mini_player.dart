@@ -134,7 +134,9 @@ class MiniPlayer extends ConsumerWidget {
                             child: IconButton(
                               padding: EdgeInsets.zero,
                               icon: Icon(
-                                playerState.status == PlayerStatus.playing
+                                (playerState.status == PlayerStatus.playing ||
+                                        playerState.status == PlayerStatus.loading ||
+                                        playerState.status == PlayerStatus.buffering)
                                     ? Icons.pause_rounded
                                     : Icons.play_arrow_rounded,
                                 color: tokens.text,

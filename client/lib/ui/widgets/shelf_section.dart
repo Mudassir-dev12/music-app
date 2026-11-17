@@ -60,9 +60,10 @@ class ShelfSection extends StatelessWidget {
           const SizedBox(height: MelodiaTokens.spacingMd),
           AlbumCarousel(
             children: shelf.items.map((item) {
+              final isArtist = item.type == MediaItemType.artist;
               return MediaItemCard(
                 item: item,
-                width: itemWidth,
+                width: isArtist ? 100 : itemWidth,
               );
             }).toList(),
           ),

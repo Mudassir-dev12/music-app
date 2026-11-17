@@ -26,8 +26,33 @@ class BrowseScreen extends ConsumerWidget {
     final chartsAsync = ref.watch(chartsProvider(null));
     final moodsAsync = ref.watch(moodsProvider);
 
+    final settingsButton = GestureDetector(
+      onTap: () => context.push('/settings'),
+      child: Tooltip(
+        message: 'Settings & Profile',
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: tokens.surface2,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: tokens.separator,
+              width: 1,
+            ),
+          ),
+          child: Icon(
+            Icons.person_rounded,
+            color: tokens.accent,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+
     return ScreenScaffold(
       title: 'Browse',
+      trailing: settingsButton,
       slivers: [
         // 1. Charts Section
         chartsAsync.when(

@@ -19,7 +19,10 @@ class PlayerStateData {
   final String? errorMessage;
   final QueueState queue;
 
-  bool get isPlaying => status == PlayerStatus.playing;
+  bool get isPlaying =>
+      status == PlayerStatus.playing ||
+      status == PlayerStatus.loading ||
+      status == PlayerStatus.buffering;
   bool get isBuffering => status == PlayerStatus.buffering;
   bool get isLoading => status == PlayerStatus.loading;
 

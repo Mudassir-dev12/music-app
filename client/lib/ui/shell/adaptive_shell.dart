@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../theme/tokens.dart';
 import '../widgets/connection_status_banner.dart';
@@ -11,10 +10,14 @@ import 'sidebar.dart';
 class AdaptiveShell extends StatelessWidget {
   const AdaptiveShell({
     super.key,
-    required this.navigationShell,
+    required this.child,
+    required this.currentIndex,
+    required this.onTap,
   });
 
-  final StatefulNavigationShell navigationShell;
+  final Widget child;
+  final int currentIndex;
+  final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -34,17 +37,14 @@ class AdaptiveShell extends StatelessWidget {
                   child: Row(
                     children: [
                       DesktopSidebar(
-                        currentIndex: navigationShell.currentIndex,
-                        onTap: (index) => navigationShell.goBranch(
-                          index,
-                          initialLocation: index == navigationShell.currentIndex,
-                        ),
+                        currentIndex: currentIndex,
+                        onTap: onTap,
                       ),
                       Expanded(
                         child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 1200),
-                            child: navigationShell,
+                            child: child,
                           ),
                         ),
                       ),
@@ -63,14 +63,11 @@ class AdaptiveShell extends StatelessWidget {
           body: Column(
             children: [
               const ConnectionStatusBanner(),
-              Expanded(child: navigationShell),
+              Expanded(child: child),
               const MiniPlayer(),
               PhoneTabBar(
-                currentIndex: navigationShell.currentIndex,
-                onTap: (index) => navigationShell.goBranch(
-                  index,
-                  initialLocation: index == navigationShell.currentIndex,
-                ),
+                currentIndex: currentIndex,
+                onTap: onTap,
               ),
             ],
           ),

@@ -184,8 +184,21 @@ class DiscoveryService:
         cache_key = "discovery:home"
 
         async def fetch():
-            raw = await run_in_worker(self._ytm.get_home, limit=8)
-            shelves = normalize_home_shelves(raw)
+            shelves = []
+            try:
+                raw = await run_in_worker(self._ytm.get_home, limit=8)
+                shelves = normalize_home_shelves(raw)
+            except Exception as e:
+                logger.warning(f"get_home failed: {e}")
+
+            # If get_home returned no shelves (common when unauthenticated), fallback to charts
+            if not shelves:
+                try:
+                    raw_charts = await run_in_worker(self._ytm.get_charts, country=settings.YTMUSIC_LOCATION)
+                    shelves = normalize_charts(raw_charts)
+                except Exception as e:
+                    logger.warning(f"Fallback charts failed: {e}")
+
             return {"shelves": [s.model_dump() for s in shelves]}
 
         data, cache_status = await self.coordinator.execute(cache_key, settings.TTL_HOME, fetch)

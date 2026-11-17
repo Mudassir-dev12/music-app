@@ -85,6 +85,12 @@ class PlayerController extends Notifier<PlayerStateData> {
     _audioHandler.playerStateStream.listen((ps) {
       if (ps.processingState.name == 'completed') {
         _onTrackEnded();
+      } else if (state.queue.currentTrack != null) {
+        if (ps.playing && state.status != PlayerStatus.playing) {
+          state = state.copyWith(status: PlayerStatus.playing);
+        } else if (!ps.playing && state.status == PlayerStatus.playing) {
+          state = state.copyWith(status: PlayerStatus.paused);
+        }
       }
     });
 
@@ -95,9 +101,12 @@ class PlayerController extends Notifier<PlayerStateData> {
       }
     });
 
-    // Restore state from persistence as PAUSED
+    // Restore state from persistence as PAUSED only if player is still idle
     final restored = await _persistence.restoreState();
-    if (restored != null && restored.queue.isNotEmpty) {
+    if (state.status == PlayerStatus.idle &&
+        state.queue.isEmpty &&
+        restored != null &&
+        restored.queue.isNotEmpty) {
       state = state.copyWith(
         queue: restored.queue,
         position: restored.position,
@@ -294,7 +303,9 @@ class PlayerController extends Notifier<PlayerStateData> {
       } catch (_) {}
     }
 
-    if (state.status == PlayerStatus.playing) {
+    if (state.status == PlayerStatus.playing ||
+        state.status == PlayerStatus.loading ||
+        state.status == PlayerStatus.buffering) {
       await pause();
     } else if (state.status == PlayerStatus.paused) {
       await resume();
@@ -313,10 +324,16 @@ class PlayerController extends Notifier<PlayerStateData> {
   }
 
   Future<void> resume() async {
-    await _audioHandler.play();
-    state = state.copyWith(status: PlayerStatus.playing);
-    MediaSessionService.updatePlaybackState(playing: true);
-    _persistence.saveStateDebounced(state);
+    try {
+      await _audioHandler.play();
+      state = state.copyWith(status: PlayerStatus.playing);
+      MediaSessionService.updatePlaybackState(playing: true);
+      _persistence.saveStateDebounced(state);
+    } catch (_) {
+      if (state.queue.currentTrack != null) {
+        await _loadAndPlayCurrent(resumeAt: state.position);
+      }
+    }
   }
 
   Future<void> seekTo(Duration position) async {

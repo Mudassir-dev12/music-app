@@ -7,7 +7,6 @@ import '../../api/errors.dart';
 import '../../api/models.dart';
 import '../../data/user_data_providers.dart';
 import '../../player/player_controller.dart';
-import '../../player/player_state.dart';
 import '../../theme/tokens.dart';
 import '../widgets/mosaic_cover.dart';
 import '../widgets/track_row.dart';
@@ -563,7 +562,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
 
     final playerState = ref.watch(playerControllerProvider);
     final currentVid = playerState.queue.currentTrack?.videoId;
-    final isPlaying = playerState.status == PlayerStatus.playing;
+    final isPlaying = playerState.isPlaying;
 
     return SliverList(
       delegate: SliverChildBuilderDelegate(
@@ -696,7 +695,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
 
           final playerState = ref.watch(playerControllerProvider);
           final currentVid = playerState.queue.currentTrack?.videoId;
-          final isPlaying = playerState.status == PlayerStatus.playing;
+          final isPlaying = playerState.isPlaying;
 
           return CustomScrollView(
             controller: _scrollController,
