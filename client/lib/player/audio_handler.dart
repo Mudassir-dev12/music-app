@@ -105,6 +105,19 @@ class MelodiaAudioHandler extends BaseAudioHandler with SeekHandler {
     }
   }
 
+  Future<Duration?> playFile(String filePath, {Duration? initialPosition}) async {
+    try {
+      final duration = await _player.setFilePath(filePath);
+      if (initialPosition != null && initialPosition > Duration.zero) {
+        await _player.seek(initialPosition);
+      }
+      await _player.play();
+      return duration;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   @override
   Future<void> play() => _player.play();
 

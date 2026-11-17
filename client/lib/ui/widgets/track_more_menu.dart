@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../api/discovery_api.dart';
 import '../../api/models.dart';
 import '../../data/user_data_providers.dart';
+import '../../downloads/download_repository.dart';
 import '../../player/player_controller.dart';
 import '../../theme/tokens.dart';
 import 'add_to_playlist_sheet.dart';
@@ -149,7 +151,71 @@ void showTrackMoreMenu({
               },
             ),
 
-            // 5. Remove from Playlist (if passed)
+            // 5. Download / Remove Download
+            if (kIsWeb)
+              ListTile(
+                leading: Icon(Icons.arrow_circle_down_rounded, color: tokens.textSecondary),
+                title: Text(
+                  'Download',
+                  style: MelodiaTokens.body.copyWith(color: tokens.text),
+                ),
+                subtitle: Text(
+                  'Downloads are available in the mobile app',
+                  style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Downloads are available in the mobile app.',
+                        style: MelodiaTokens.footnote.copyWith(color: tokens.text),
+                      ),
+                      backgroundColor: tokens.surface2,
+                    ),
+                  );
+                },
+              )
+            else ...[
+              if (ref.watch(downloadedIdsProvider).contains(track.videoId))
+                ListTile(
+                  leading: Icon(Icons.delete_outline_rounded, color: tokens.destructive),
+                  title: Text(
+                    'Remove Download',
+                    style: MelodiaTokens.body.copyWith(color: tokens.destructive),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ref.read(downloadManagerProvider).removeDownloadedTrack(track.videoId);
+                  },
+                )
+              else if (ref.watch(downloadManagerProvider).isQueuedOrDownloading(track.videoId))
+                ListTile(
+                  leading: Icon(Icons.cancel_outlined, color: tokens.textSecondary),
+                  title: Text(
+                    'Cancel Download',
+                    style: MelodiaTokens.body.copyWith(color: tokens.text),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ref.read(downloadManagerProvider).cancel(track.videoId);
+                  },
+                )
+              else
+                ListTile(
+                  leading: Icon(Icons.arrow_circle_down_rounded, color: tokens.accent),
+                  title: Text(
+                    'Download',
+                    style: MelodiaTokens.body.copyWith(color: tokens.text),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ref.read(downloadManagerProvider).enqueueTrack(track);
+                  },
+                ),
+            ],
+
+            // 6. Remove from Playlist (if passed)
             if (onRemoveFromPlaylist != null)
               ListTile(
                 leading: Icon(Icons.playlist_remove_rounded,

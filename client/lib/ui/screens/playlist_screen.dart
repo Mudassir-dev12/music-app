@@ -8,6 +8,7 @@ import '../../api/models.dart';
 import '../../data/user_data_providers.dart';
 import '../../player/player_controller.dart';
 import '../../theme/tokens.dart';
+import '../widgets/collection_download_button.dart';
 import '../widgets/mosaic_cover.dart';
 import '../widgets/track_row.dart';
 
@@ -423,6 +424,12 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
           pl.tracks.items.map((it) => it.track).toList(),
           tokens,
         ),
+        const SizedBox(height: MelodiaTokens.spacingMd),
+        CollectionDownloadButton(
+          collectionKey: widget.isLikedSongs ? 'liked_songs' : 'playlist:${widget.playlistId}',
+          title: pl.name,
+          tracks: pl.tracks.items.map((it) => it.track).toList(),
+        ),
       ],
     );
   }
@@ -487,6 +494,12 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                   pl.tracks.items.map((it) => it.track).toList(),
                   tokens,
                 ),
+              ),
+              const SizedBox(height: MelodiaTokens.spacingMd),
+              CollectionDownloadButton(
+                collectionKey: widget.isLikedSongs ? 'liked_songs' : 'playlist:${widget.playlistId}',
+                title: pl.name,
+                tracks: pl.tracks.items.map((it) => it.track).toList(),
               ),
             ],
           ),

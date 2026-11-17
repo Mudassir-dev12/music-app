@@ -7,11 +7,13 @@ class EmptyState extends StatelessWidget {
     required this.icon,
     required this.title,
     this.subtitle,
+    this.action,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +48,10 @@ class EmptyState extends StatelessWidget {
                     color: tokens.textSecondary,
                   ),
                 ),
+              ],
+              if (action != null) ...[
+                const SizedBox(height: MelodiaTokens.spacingLg),
+                action!,
               ],
             ],
           ),

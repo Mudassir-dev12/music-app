@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/errors.dart';
 import '../../data/discovery_providers.dart';
+import '../../downloads/offline_mode.dart';
 import '../../theme/tokens.dart';
 import '../widgets/busy_banner.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
+import '../widgets/pill_button.dart';
 import '../widgets/screen_scaffold.dart';
 import '../widgets/section_header.dart';
 import '../widgets/shelf_section.dart';
@@ -23,6 +26,7 @@ class BrowseScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+    final isOffline = ref.watch(isOfflineModeProvider);
     final chartsAsync = ref.watch(chartsProvider(null));
     final moodsAsync = ref.watch(moodsProvider);
 
@@ -49,6 +53,28 @@ class BrowseScreen extends ConsumerWidget {
         ),
       ),
     );
+
+    if (isOffline) {
+      return ScreenScaffold(
+        title: 'Browse',
+        trailing: settingsButton,
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: EmptyState(
+              icon: Icons.cloud_off_rounded,
+              title: "You're offline",
+              subtitle: 'Only downloaded music is playable in offline mode.',
+              action: PillButton(
+                label: 'Go to Downloads',
+                icon: Icons.download_done_rounded,
+                onTap: () => context.push('/downloaded'),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
     return ScreenScaffold(
       title: 'Browse',

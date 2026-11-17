@@ -9,6 +9,7 @@ import '../../data/discovery_providers.dart';
 import '../../player/player_controller.dart';
 import '../../theme/tokens.dart';
 import '../widgets/busy_banner.dart';
+import '../widgets/collection_download_button.dart';
 import '../widgets/error_state.dart';
 import '../widgets/track_more_menu.dart';
 
@@ -183,6 +184,12 @@ class AlbumScreen extends ConsumerWidget {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: MelodiaTokens.spacingMd),
+                      CollectionDownloadButton(
+                        collectionKey: 'album:${album.id}',
+                        title: album.title,
+                        tracks: album.tracks,
                       ),
                       const SizedBox(height: MelodiaTokens.spacingXl),
                     ],

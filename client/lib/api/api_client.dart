@@ -385,6 +385,30 @@ class ApiClient {
     }
   }
 
+  /// Streams a response from [path] with optional Range headers.
+  Future<Response<ResponseBody>> getStream(
+    String path, {
+    Map<String, dynamic>? queryParams,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      return await _dio.get<ResponseBody>(
+        path,
+        queryParameters: queryParams,
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: headers,
+        ),
+        cancelToken: cancelToken,
+      );
+    } on DioException catch (e) {
+      final err = e.error is ApiError ? e.error as ApiError : UnknownError(e.message ?? '');
+      onNetworkFailure?.call(err);
+      throw err;
+    }
+  }
+
   /// HEAD [path] for warmup/pre-resolving streams.
   Future<dynamic> head(String path) async {
     return _retryIdempotent(() async {

@@ -138,4 +138,13 @@ class UserApi {
       'video_ids': videoIds,
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Downloads
+  // ---------------------------------------------------------------------------
+
+  Future<DownloadLimits> getDownloadLimits() async {
+    final data = await _client.get('/me/downloads/limits');
+    return DownloadLimits.fromJson(data as Map<String, dynamic>);
+  }
 }

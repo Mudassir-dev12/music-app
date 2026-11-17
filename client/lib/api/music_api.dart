@@ -46,9 +46,10 @@ class MusicApi {
     return Track.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Requests a short-lived streaming URL ticket for [videoId].
-  Future<AudioTicket> getAudioTicket(String videoId) async {
-    final data = await _client.post('/audio/$videoId/ticket', null);
+  /// Requests a short-lived streaming or download URL ticket for [videoId].
+  Future<AudioTicket> getAudioTicket(String videoId, {String purpose = 'stream'}) async {
+    final body = purpose == 'stream' ? null : {'purpose': purpose};
+    final data = await _client.post('/audio/$videoId/ticket', body);
     return AudioTicket.fromJson(data as Map<String, dynamic>);
   }
 }

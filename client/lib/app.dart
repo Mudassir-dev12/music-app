@@ -13,6 +13,8 @@ import 'theme/tokens.dart';
 import 'ui/screens/album_screen.dart';
 import 'ui/screens/artist_screen.dart';
 import 'ui/screens/browse_screen.dart';
+import 'ui/screens/download_queue_screen.dart';
+import 'ui/screens/downloaded_screen.dart';
 import 'ui/screens/history_screen.dart';
 import 'ui/screens/library_screen.dart';
 import 'ui/screens/listen_now_screen.dart';
@@ -39,7 +41,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           int index = 0;
           if (path.startsWith('/browse') || path.startsWith('/mood')) {
             index = 1;
-          } else if (path.startsWith('/library') || path.startsWith('/playlist')) {
+          } else if (path.startsWith('/library') ||
+              path.startsWith('/playlist') ||
+              path.startsWith('/downloaded') ||
+              path.startsWith('/downloads')) {
             index = 2;
           } else if (path.startsWith('/search')) {
             index = 3;
@@ -77,6 +82,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/library',
             builder: (context, state) => const LibraryScreen(),
+          ),
+          GoRoute(
+            path: '/downloaded',
+            builder: (context, state) => const DownloadedScreen(),
+          ),
+          GoRoute(
+            path: '/downloads/queue',
+            builder: (context, state) => const DownloadQueueScreen(),
           ),
           GoRoute(
             path: '/search',

@@ -8,7 +8,11 @@ import '../api/discovery_api.dart';
 import '../api/errors.dart';
 import '../api/models.dart';
 import '../core/connectivity/connectivity_controller.dart';
+import '../core/platform/download_store.dart';
 import '../core/platform/media_session.dart';
+import '../downloads/download_manager.dart';
+import '../downloads/download_repository.dart';
+import '../downloads/offline_mode.dart';
 import 'audio_handler.dart';
 import 'audio_url_service.dart';
 import 'autoplay_controller.dart';
@@ -29,6 +33,8 @@ class PlayerController extends Notifier<PlayerStateData> {
   AudioUrlService get _urlService => ref.read(audioUrlServiceProvider);
   PersistenceService get _persistence => ref.read(persistenceServiceProvider);
   ApiClient get _apiClient => ref.read(apiClientProvider);
+  DownloadStore get _downloadStore => ref.read(downloadStoreProvider);
+  DownloadManager get _downloadManager => ref.read(downloadManagerProvider);
 
   int _consecutiveErrors = 0;
   String? _lastErrorVideoId;
@@ -164,7 +170,24 @@ class PlayerController extends Notifier<PlayerStateData> {
   }
 
   Future<void> playList(List<Track> tracks, int startIndex) async {
-    final newQueue = q.playList(state.queue, tracks, startIndex);
+    final isOffline = !ref.read(connectivityProvider).isOnline || ref.read(isOfflineModeProvider);
+    List<Track> effectiveTracks = tracks;
+    int effectiveIndex = startIndex;
+
+    if (isOffline) {
+      effectiveTracks = tracks.where((t) => _downloadManager.isDownloaded(t.videoId)).toList();
+      if (effectiveTracks.isEmpty) {
+        state = state.copyWith(
+          errorMessage: "No downloaded songs available in this playlist to play offline.",
+        );
+        return;
+      }
+      final selectedVid = tracks[startIndex.clamp(0, tracks.length - 1)].videoId;
+      final foundIdx = effectiveTracks.indexWhere((t) => t.videoId == selectedVid);
+      effectiveIndex = foundIdx != -1 ? foundIdx : 0;
+    }
+
+    final newQueue = q.playList(state.queue, effectiveTracks, effectiveIndex);
     state = state.copyWith(queue: newQueue);
     await _loadAndPlayCurrent();
   }
@@ -193,8 +216,36 @@ class PlayerController extends Notifier<PlayerStateData> {
     _emitted30sEvent = false;
 
     try {
-      final url = await _urlService.urlFor(current.videoId);
-      final duration = await _audioHandler.playUrl(url, initialPosition: resumeAt);
+      Duration? duration;
+      String? localFilePath;
+
+      if (_downloadStore.isSupported) {
+        final exists = await _downloadStore.exists(current.videoId);
+        if (exists) {
+          final size = await _downloadStore.sizeOf(current.videoId);
+          final manifestTrack = _downloadManager.manifest.tracks[current.videoId];
+          if (manifestTrack != null && manifestTrack.byteSize > 0 && size == manifestTrack.byteSize) {
+            localFilePath = await _downloadStore.pathFor(current.videoId);
+          } else if (!exists || size == 0) {
+            await _downloadManager.removeDownloadedTrack(current.videoId);
+          }
+        }
+      }
+
+      if (localFilePath != null) {
+        duration = await _audioHandler.playFile(localFilePath, initialPosition: resumeAt);
+      } else {
+        final isOffline = !ref.read(connectivityProvider).isOnline || ref.read(isOfflineModeProvider);
+        if (isOffline) {
+          state = state.copyWith(
+            status: PlayerStatus.paused,
+            errorMessage: "This song isn't downloaded. Connect to the internet to stream.",
+          );
+          return;
+        }
+        final url = await _urlService.urlFor(current.videoId);
+        duration = await _audioHandler.playUrl(url, initialPosition: resumeAt);
+      }
 
       _consecutiveErrors = 0;
       _lastErrorVideoId = null;
@@ -356,7 +407,8 @@ class PlayerController extends Notifier<PlayerStateData> {
       // End of queue with repeat off — check if autoplay is enabled
       final autoplayEnabled = ref.read(autoplayEnabledProvider);
       final lastTrack = state.queue.currentTrack;
-      if (autoplayEnabled && lastTrack != null) {
+      final isOffline = !ref.read(connectivityProvider).isOnline || ref.read(isOfflineModeProvider);
+      if (autoplayEnabled && lastTrack != null && !isOffline) {
         final discoveryApi = ref.read(discoveryApiProvider);
         final candidates = await getAutoplayCandidates(
           discoveryApi: discoveryApi,

@@ -10,6 +10,7 @@ import '../../player/player_controller.dart';
 import '../../theme/tokens.dart';
 import '../widgets/busy_banner.dart';
 import '../widgets/carousel.dart';
+import '../widgets/collection_download_button.dart';
 import '../widgets/error_state.dart';
 import '../widgets/media_item_card.dart';
 import '../widgets/section_header.dart';
@@ -103,7 +104,7 @@ class ArtistScreen extends ConsumerWidget {
                       const SizedBox(height: MelodiaTokens.spacingLg),
 
                       // Play & Shuffle Top Songs
-                      if (artist.topSongs.isNotEmpty)
+                      if (artist.topSongs.isNotEmpty) ...[
                         Row(
                           children: [
                             Expanded(
@@ -145,6 +146,13 @@ class ArtistScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
+                        const SizedBox(height: MelodiaTokens.spacingMd),
+                        CollectionDownloadButton(
+                          collectionKey: 'artist:${artist.id}',
+                          title: artist.name,
+                          tracks: artist.topSongs,
+                        ),
+                      ],
                       const SizedBox(height: MelodiaTokens.spacingXl),
                     ],
                   ),

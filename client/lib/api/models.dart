@@ -154,14 +154,54 @@ class TokenPair {
 
 /// A short-lived URL ticket for streaming audio.
 class AudioTicket {
-  const AudioTicket({required this.url, required this.expiresIn});
+  const AudioTicket({
+    required this.url,
+    required this.expiresIn,
+    this.purpose = 'stream',
+    this.remainingDownloadMb,
+    this.maxTrackMb,
+  });
 
   final String url;
   final int expiresIn;
+  final String purpose;
+  final int? remainingDownloadMb;
+  final int? maxTrackMb;
 
   factory AudioTicket.fromJson(Map<String, dynamic> json) => AudioTicket(
         url: json['url'] as String,
         expiresIn: json['expires_in'] as int,
+        purpose: (json['purpose'] as String?) ?? 'stream',
+        remainingDownloadMb: json['remaining_download_mb'] as int?,
+        maxTrackMb: json['max_track_mb'] as int?,
+      );
+}
+
+/// Download limits and quota information.
+class DownloadLimits {
+  const DownloadLimits({
+    required this.dailyDownloadMbLimit,
+    required this.dailyDownloadMbRemaining,
+    required this.remainingDownloadMb,
+    required this.maxDownloadTrackMb,
+    required this.maxConcurrentDownloadsPerUser,
+    required this.maxConcurrentDownloadsGlobal,
+  });
+
+  final int dailyDownloadMbLimit;
+  final int dailyDownloadMbRemaining;
+  final int remainingDownloadMb;
+  final int maxDownloadTrackMb;
+  final int maxConcurrentDownloadsPerUser;
+  final int maxConcurrentDownloadsGlobal;
+
+  factory DownloadLimits.fromJson(Map<String, dynamic> json) => DownloadLimits(
+        dailyDownloadMbLimit: json['daily_download_mb_limit'] as int? ?? 1000,
+        dailyDownloadMbRemaining: json['daily_download_mb_remaining'] as int? ?? 1000,
+        remainingDownloadMb: json['remaining_download_mb'] as int? ?? 1000,
+        maxDownloadTrackMb: json['max_download_track_mb'] as int? ?? 80,
+        maxConcurrentDownloadsPerUser: json['max_concurrent_downloads_per_user'] as int? ?? 2,
+        maxConcurrentDownloadsGlobal: json['max_concurrent_downloads_global'] as int? ?? 4,
       );
 }
 

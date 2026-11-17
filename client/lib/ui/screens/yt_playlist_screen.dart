@@ -9,6 +9,7 @@ import '../../data/discovery_providers.dart';
 import '../../player/player_controller.dart';
 import '../../theme/tokens.dart';
 import '../widgets/busy_banner.dart';
+import '../widgets/collection_download_button.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
 import '../widgets/track_row.dart';
@@ -157,6 +158,12 @@ class YtPlaylistScreen extends ConsumerWidget {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: MelodiaTokens.spacingMd),
+                        CollectionDownloadButton(
+                          collectionKey: 'ytplaylist:${pl.id}',
+                          title: pl.title,
+                          tracks: pl.tracks,
                         ),
                       const SizedBox(height: MelodiaTokens.spacingXl),
                     ],

@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/config.dart' as config;
 import '../../core/connectivity/connectivity_controller.dart';
 import '../../data/user_data_providers.dart';
+import '../../downloads/download_repository.dart';
+import '../../downloads/offline_mode.dart';
 import '../../player/autoplay_controller.dart';
 import '../../theme/theme_controller.dart';
 import '../../theme/tokens.dart';
@@ -68,6 +70,127 @@ class SettingsScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  String _formatSize(int bytes) {
+    if (bytes <= 0) return '0 MB';
+    final mb = bytes / (1024 * 1024);
+    if (mb < 1000) {
+      return '${mb.toStringAsFixed(1)} MB';
+    }
+    final gb = mb / 1024;
+    return '${gb.toStringAsFixed(2)} GB';
+  }
+
+  Future<void> _showRemoveAllDownloadsDialog(
+      BuildContext context, WidgetRef ref) async {
+    final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+    final tracks = ref.read(downloadedTracksProvider);
+    final count = tracks.length;
+    final totalBytes = tracks.fold<int>(0, (sum, t) => sum + t.byteSize);
+    final sizeFormatted = _formatSize(totalBytes);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: tokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(MelodiaTokens.radiusSheet),
+        ),
+        title: Text(
+          'Remove All Downloads?',
+          style: MelodiaTokens.title3.copyWith(color: tokens.text),
+        ),
+        content: Text(
+          'This will delete $count downloaded songs ($sizeFormatted) from your device storage.',
+          style: MelodiaTokens.body.copyWith(color: tokens.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: Text(
+              'Cancel',
+              style: MelodiaTokens.subhead.copyWith(color: tokens.textSecondary),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: tokens.destructive,
+            ),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: Text(
+              'Remove All',
+              style: MelodiaTokens.subhead.copyWith(color: tokens.text),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref.read(downloadManagerProvider).removeAllDownloads();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Removed all downloaded songs.',
+              style: MelodiaTokens.footnote.copyWith(color: tokens.text),
+            ),
+            backgroundColor: tokens.surface2,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showStorageCapPicker(
+      BuildContext context, WidgetRef ref, int currentCap) async {
+    final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+    final choices = [
+      (label: '500 MB', mb: 500),
+      (label: '1 GB', mb: 1024),
+      (label: '2 GB', mb: 2048),
+      (label: '5 GB', mb: 5120),
+      (label: '10 GB', mb: 10240),
+      (label: 'None (unlimited)', mb: 0),
+    ];
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: tokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(MelodiaTokens.radiusSheet),
+        ),
+        title: Text(
+          'Storage Limit',
+          style: MelodiaTokens.title3.copyWith(color: tokens.text),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: choices.map((c) {
+            final isSelected = c.mb == currentCap;
+            return ListTile(
+              title: Text(
+                c.label,
+                style: MelodiaTokens.body.copyWith(
+                  color: isSelected ? tokens.accent : tokens.text,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              trailing: isSelected
+                  ? Icon(Icons.check_rounded, color: tokens.accent, size: 20)
+                  : null,
+              onTap: () {
+                ref.read(storageCapProvider.notifier).setCap(c.mb);
+                ref.read(downloadManagerProvider).setStorageCapMb(c.mb);
+                Navigator.of(dialogCtx).pop();
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -220,6 +343,160 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   onTap: () => _showClearHistoryDialog(context, ref),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: MelodiaTokens.spacingXl),
+
+          // 3. DOWNLOADS & STORAGE
+          _buildSectionHeader(tokens, 'DOWNLOADS & STORAGE'),
+          Material(
+            color: tokens.surface,
+            borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                SwitchListTile(
+                  secondary: Icon(
+                    Icons.cloud_off_rounded,
+                    color: ref.watch(isOfflineModeProvider)
+                        ? tokens.accent
+                        : tokens.textSecondary,
+                  ),
+                  title: Text(
+                    'Offline Mode',
+                    style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                  ),
+                  subtitle: Text(
+                    'Only play downloaded music',
+                    style: MelodiaTokens.caption.copyWith(color: tokens.textSecondary),
+                  ),
+                  value: ref.watch(isOfflineModeProvider),
+                  activeTrackColor: tokens.accent,
+                  onChanged: (_) {
+                    ref.read(offlineModeProvider.notifier).toggleManualOffline();
+                  },
+                ),
+                Divider(color: tokens.separator, height: 0.5, indent: 52),
+                SwitchListTile(
+                  secondary: Icon(
+                    Icons.wifi_rounded,
+                    color: tokens.textSecondary,
+                  ),
+                  title: Text(
+                    'Download over Wi-Fi only',
+                    style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                  ),
+                  value: ref.watch(wifiOnlyProvider),
+                  activeTrackColor: tokens.accent,
+                  onChanged: (val) {
+                    ref.read(wifiOnlyProvider.notifier).set(val);
+                    ref.read(downloadManagerProvider).setWifiOnly(val);
+                  },
+                ),
+                Divider(color: tokens.separator, height: 0.5, indent: 52),
+                ListTile(
+                  leading: Icon(
+                    Icons.disc_full_rounded,
+                    color: tokens.textSecondary,
+                  ),
+                  title: Text(
+                    'Storage Limit',
+                    style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                  ),
+                  subtitle: Text(
+                    ref.watch(storageCapProvider) == 0
+                        ? 'Unlimited'
+                        : ref.watch(storageCapProvider) >= 1024
+                            ? '${ref.watch(storageCapProvider) ~/ 1024} GB'
+                            : '${ref.watch(storageCapProvider)} MB',
+                    style: MelodiaTokens.caption.copyWith(color: tokens.textSecondary),
+                  ),
+                  trailing: Icon(Icons.chevron_right_rounded, color: tokens.textTertiary),
+                  onTap: () => _showStorageCapPicker(
+                    context,
+                    ref,
+                    ref.read(storageCapProvider),
+                  ),
+                ),
+                Divider(color: tokens.separator, height: 0.5, indent: 52),
+                ListTile(
+                  leading: Icon(
+                    Icons.folder_outlined,
+                    color: tokens.textSecondary,
+                  ),
+                  title: Text(
+                    'Downloaded Music',
+                    style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                  ),
+                  subtitle: Text(
+                    '${ref.watch(downloadedTracksProvider).length} songs • ${_formatSize(ref.watch(downloadedTracksProvider).fold<int>(0, (s, t) => s + t.byteSize))}',
+                    style: MelodiaTokens.caption.copyWith(color: tokens.textSecondary),
+                  ),
+                  trailing: Icon(Icons.chevron_right_rounded, color: tokens.textTertiary),
+                  onTap: () => context.push('/downloaded'),
+                ),
+                Divider(color: tokens.separator, height: 0.5, indent: 52),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final limitsAsync = ref.watch(downloadLimitsProvider);
+                    final subtitle = limitsAsync.when(
+                      data: (l) => '${l.remainingDownloadMb} MB remaining today',
+                      loading: () => 'Loading quota...',
+                      error: (_, __) => 'Offline (quota unavailable)',
+                    );
+                    return ListTile(
+                      leading: Icon(
+                        Icons.speed_rounded,
+                        color: tokens.textSecondary,
+                      ),
+                      title: Text(
+                        "Today's Download Quota",
+                        style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                      ),
+                      subtitle: Text(
+                        subtitle,
+                        style: MelodiaTokens.caption.copyWith(color: tokens.textSecondary),
+                      ),
+                    );
+                  },
+                ),
+                Divider(color: tokens.separator, height: 0.5, indent: 52),
+                ListTile(
+                  leading: Icon(
+                    Icons.image_not_supported_outlined,
+                    color: tokens.textSecondary,
+                  ),
+                  title: Text(
+                    'Clear Image Cache',
+                    style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                  ),
+                  onTap: () {
+                    PaintingBinding.instance.imageCache.clear();
+                    PaintingBinding.instance.imageCache.clearLiveImages();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Image cache cleared',
+                          style: MelodiaTokens.footnote.copyWith(color: tokens.text),
+                        ),
+                        backgroundColor: tokens.surface2,
+                      ),
+                    );
+                  },
+                ),
+                Divider(color: tokens.separator, height: 0.5, indent: 52),
+                ListTile(
+                  leading: Icon(
+                    Icons.delete_forever_rounded,
+                    color: tokens.destructive,
+                  ),
+                  title: Text(
+                    'Remove All Downloads',
+                    style: MelodiaTokens.headline.copyWith(color: tokens.destructive),
+                  ),
+                  onTap: () => _showRemoveAllDownloadsDialog(context, ref),
                 ),
               ],
             ),

@@ -10,12 +10,14 @@ import '../../api/discovery_models.dart';
 import '../../api/errors.dart';
 import '../../api/models.dart';
 import '../../data/user_data_providers.dart';
+import '../../downloads/offline_mode.dart';
 import '../../player/player_controller.dart';
 import '../../theme/tokens.dart';
 import '../widgets/busy_banner.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
 import '../widgets/media_item_card.dart';
+import '../widgets/pill_button.dart';
 import '../widgets/shelf_section.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/top_result_card.dart';
@@ -252,6 +254,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+    final isOffline = ref.watch(isOfflineModeProvider);
     final hasQuery = _searchController.text.trim().isNotEmpty;
     final playerState = ref.watch(playerControllerProvider);
     final currentVid = playerState.queue.currentTrack?.videoId;
@@ -337,7 +340,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
             ),
 
-            // 2. Filter Pills (when query exists and not typing suggestions)
+            if (isOffline)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: EmptyState(
+                  icon: Icons.cloud_off_rounded,
+                  title: "You're offline",
+                  subtitle: 'Search requires an internet connection.',
+                  action: PillButton(
+                    label: 'Go to Downloads',
+                    icon: Icons.download_done_rounded,
+                    onTap: () => context.push('/downloaded'),
+                  ),
+                ),
+              )
+            else ...[
+              // 2. Filter Pills (when query exists and not typing suggestions)
             if (hasQuery && !_showSuggestions)
               SliverToBoxAdapter(
                 child: SizedBox(
@@ -469,6 +487,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             // 8. Submitted Search Results
             else
               ..._buildResultsSlivers(tokens, currentVid, isPlaying, likedIds),
+            ],
           ],
         ),
       ),

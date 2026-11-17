@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/models.dart';
+import '../../downloads/download_repository.dart';
+import '../../downloads/offline_mode.dart';
 import '../../theme/tokens.dart';
 import 'track_more_menu.dart';
 
@@ -40,6 +42,9 @@ class TrackRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+    final isDownloaded = ref.watch(downloadedIdsProvider).contains(track.videoId);
+    final isOfflineMode = ref.watch(isOfflineModeProvider);
+    final isDimmed = isOfflineMode && !isDownloaded;
 
     return Semantics(
       button: true,
@@ -47,16 +52,31 @@ class TrackRow extends ConsumerWidget {
       child: Material(
         color: tokens.transparent,
         child: InkWell(
-          onTap: onTap,
-          child: SizedBox(
-            height: 56,
-            child: Column(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: MelodiaTokens.spacingLg,
+          onTap: isDimmed
+              ? () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "This song isn't downloaded. Connect to the internet to stream.",
+                        style: MelodiaTokens.footnote.copyWith(color: tokens.text),
+                      ),
+                      backgroundColor: tokens.surface2,
+                      duration: const Duration(seconds: 2),
                     ),
+                  );
+                }
+              : onTap,
+          child: Opacity(
+            opacity: isDimmed ? 0.38 : 1.0,
+            child: SizedBox(
+              height: 56,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: MelodiaTokens.spacingLg,
+                      ),
                     child: Row(
                       children: [
                         if (track.thumbnail != null &&
@@ -117,13 +137,27 @@ class TrackRow extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(
-                                track.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: MelodiaTokens.footnote.copyWith(
-                                  color: tokens.textSecondary,
-                                ),
+                              Row(
+                                children: [
+                                  if (isDownloaded) ...[
+                                    Icon(
+                                      Icons.arrow_circle_down_rounded,
+                                      size: 13,
+                                      color: tokens.textTertiary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Expanded(
+                                    child: Text(
+                                      track.artist,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: MelodiaTokens.footnote.copyWith(
+                                        color: tokens.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -170,7 +204,8 @@ class TrackRow extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

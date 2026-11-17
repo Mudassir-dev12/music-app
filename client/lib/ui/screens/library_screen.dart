@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/errors.dart';
 import '../../data/user_data_providers.dart';
+import '../../downloads/download_repository.dart';
 import '../../theme/tokens.dart';
 import '../widgets/mosaic_cover.dart';
 
@@ -179,9 +180,9 @@ class LibraryScreen extends ConsumerWidget {
               tokens: tokens,
               icon: Icons.download_done_rounded,
               title: 'Downloaded',
-              subtitle: 'Coming in a later update',
-              enabled: false,
-              onTap: null,
+              subtitle: '${ref.watch(downloadedTracksProvider).length} songs',
+              enabled: true,
+              onTap: () => context.push('/downloaded'),
             ),
 
             const SizedBox(height: MelodiaTokens.spacingXl),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:melodia/api/models.dart';
+import 'package:melodia/downloads/download_repository.dart';
 import 'package:melodia/theme/app_theme.dart';
 import 'package:melodia/ui/screens/settings_screen.dart';
 
@@ -14,7 +16,20 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        downloadLimitsProvider.overrideWith((ref) => Future.value(
+              const DownloadLimits(
+                dailyDownloadMbLimit: 1000,
+                dailyDownloadMbRemaining: 1000,
+                remainingDownloadMb: 1000,
+                maxDownloadTrackMb: 80,
+                maxConcurrentDownloadsPerUser: 2,
+                maxConcurrentDownloadsGlobal: 4,
+              ),
+            )),
+      ],
+    );
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
