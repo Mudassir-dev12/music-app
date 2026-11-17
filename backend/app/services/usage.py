@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
-from app.db.models import AudioUsage
+from app.db.models import AudioUsage, DownloadUsage
 from app.db.session import get_sessionmaker
 
 logger = logging.getLogger("music_app.usage")
@@ -16,6 +16,7 @@ logger = logging.getLogger("music_app.usage")
 class BandwidthGuard:
     def __init__(self):
         self._unflushed: dict[Tuple[str, datetime.date], int] = defaultdict(int)
+        self._unflushed_downloads: dict[Tuple[str, datetime.date], int] = defaultdict(int)
         self._lock = asyncio.Lock()
         self._warned_80_percent: bool = False
         self._flush_task: asyncio.Task | None = None
@@ -43,12 +44,21 @@ class BandwidthGuard:
         async with self._lock:
             self._unflushed[(user_id, today)] += byte_count
 
+    async def record_download_bytes(self, user_id: str, byte_count: int) -> None:
+        if byte_count <= 0:
+            return
+        today = datetime.datetime.now(datetime.timezone.utc).date()
+        async with self._lock:
+            self._unflushed_downloads[(user_id, today)] += byte_count
+
     async def flush(self) -> None:
         async with self._lock:
-            if not self._unflushed:
+            if not self._unflushed and not self._unflushed_downloads:
                 return
             to_flush = dict(self._unflushed)
             self._unflushed.clear()
+            to_flush_downloads = dict(self._unflushed_downloads)
+            self._unflushed_downloads.clear()
 
         try:
             sm = get_sessionmaker()
@@ -64,6 +74,17 @@ class BandwidthGuard:
                     await session.execute(
                         stmt, {"user_id": user_id, "day": day, "bytes": byte_count}
                     )
+                for (user_id, day), byte_count in to_flush_downloads.items():
+                    stmt = text(
+                        """
+                        INSERT INTO download_usage (user_id, day, bytes)
+                        VALUES (:user_id, :day, :bytes)
+                        ON CONFLICT (user_id, day) DO UPDATE SET bytes = download_usage.bytes + EXCLUDED.bytes;
+                        """
+                    )
+                    await session.execute(
+                        stmt, {"user_id": user_id, "day": day, "bytes": byte_count}
+                    )
                 await session.commit()
         except Exception as e:
             logger.error(f"Failed to flush audio usage counters to database: {e}")
@@ -71,6 +92,8 @@ class BandwidthGuard:
             async with self._lock:
                 for k, v in to_flush.items():
                     self._unflushed[k] += v
+                for k, v in to_flush_downloads.items():
+                    self._unflushed_downloads[k] += v
 
     async def _periodic_flush(self) -> None:
         while self._running:
@@ -150,6 +173,38 @@ class BandwidthGuard:
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                     detail="Monthly global audio bandwidth capacity reached.",
                     headers={"Retry-After": "3600"},
+                )
+
+    async def get_user_today_download_bytes(self, user_id: str, db: AsyncSession) -> int:
+        today = datetime.datetime.now(datetime.timezone.utc).date()
+        res = await db.execute(
+            select(DownloadUsage.bytes).where(
+                DownloadUsage.user_id == user_id, DownloadUsage.day == today
+            )
+        )
+        db_bytes = res.scalar() or 0
+        async with self._lock:
+            unflushed = self._unflushed_downloads.get((user_id, today), 0)
+        return db_bytes + unflushed
+
+    async def check_download_limits(self, user_id: str, db: AsyncSession) -> None:
+        # 1. Overall audio limits (daily streaming + monthly global)
+        await self.check_limits(user_id, db)
+
+        # 2. Daily Download Limit
+        if settings.DAILY_DOWNLOAD_MB_PER_USER > 0:
+            daily_limit_bytes = settings.DAILY_DOWNLOAD_MB_PER_USER * 1024 * 1024
+            user_today = await self.get_user_today_download_bytes(user_id, db)
+            if user_today >= daily_limit_bytes:
+                now_utc = datetime.datetime.now(datetime.timezone.utc)
+                tomorrow_utc = (now_utc + datetime.timedelta(days=1)).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                retry_after = max(1, int((tomorrow_utc - now_utc).total_seconds()))
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Daily download bandwidth quota reached.",
+                    headers={"Retry-After": str(retry_after)},
                 )
 
 

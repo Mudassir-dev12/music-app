@@ -63,7 +63,7 @@ def hash_refresh_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def create_audio_ticket(user_id: str, video_id: str) -> tuple[str, int]:
+def create_audio_ticket(user_id: str, video_id: str, purpose: str = "stream") -> tuple[str, int]:
     ttl = settings.AUDIO_TICKET_TTL_SECONDS
     now = datetime.datetime.now(datetime.timezone.utc)
     exp = now + datetime.timedelta(seconds=ttl)
@@ -71,6 +71,7 @@ def create_audio_ticket(user_id: str, video_id: str) -> tuple[str, int]:
         "sub": str(user_id),
         "vid": str(video_id),
         "typ": "audio",
+        "purpose": str(purpose),
         "iat": int(now.timestamp()),
         "exp": int(exp.timestamp()),
         "iss": settings.JWT_ISSUER,

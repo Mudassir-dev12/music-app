@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
 
     # 1. Startup validation
     settings.validate_production_config()
+    settings.validate_download_config()
 
     # 2. Database migration head check
     await check_database_at_head()

@@ -62,6 +62,12 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    download_usages = relationship(
+        "DownloadUsage",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class RefreshToken(Base):
@@ -103,6 +109,21 @@ class AudioUsage(Base):
     bytes = Column(Integer, default=0, nullable=False)
 
     user = relationship("User", back_populates="audio_usages")
+
+
+class DownloadUsage(Base):
+    __tablename__ = "download_usage"
+
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
+    )
+    day = Column(Date, primary_key=True, nullable=False)
+    bytes = Column(Integer, default=0, nullable=False)
+
+    user = relationship("User", back_populates="download_usages")
 
 
 class Track(Base):

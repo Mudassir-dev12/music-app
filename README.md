@@ -233,6 +233,14 @@ All `/me/*` routes require a valid Bearer access token (`Authorization: Bearer <
 | `GET` | `/watch/{video_id}` | Autoplay / radio track recommendations based on a track. |
 | `GET` | `/lyrics/{video_id}` | Timed synchronized lyrics (`lines: [{start_ms, end_ms, text}]`) or plain text lyrics fallback with source credit. |
 
+### Audio & Downloads
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/audio/{video_id}/ticket` | Issue audio ticket. Accepts optional body `{"purpose": "stream" \| "download"}` (default `stream`). Returns `url`, `expires_in`, `purpose`, and for downloads: `remaining_download_mb` and `max_track_mb`. |
+| `GET` | `/audio/{video_id}?t=...` | Stream or download audio bytes. When purpose is `download`, enforces `DAILY_DOWNLOAD_MB_PER_USER`, `MAX_DOWNLOAD_TRACK_MB` (413), and per-user/global download concurrency (429 with `Retry-After`). Supports `Range` resume. |
+| `HEAD` | `/audio/{video_id}?t=...` | Audio metadata headers (`Content-Length`, `Accept-Ranges: bytes`). |
+| `GET` | `/me/downloads/limits` | Returns remaining daily download quota, per-track cap, and concurrency limits for settings and UI display. |
+
 ### History
 | Method | Path | Description |
 |---|---|---|
@@ -295,7 +303,7 @@ Audio extraction from YouTube is intended strictly for private/educational use a
 ## Operating notes
 
 - **Single uvicorn worker:** Because the in-memory cache, `HASH_CONCURRENCY` semaphore, `MAX_CONCURRENT_STREAMS` semaphore, single-flight map, and in-memory bandwidth counters are per-process, **always run a single uvicorn worker** (`--workers 1`).
-- **Bandwidth guard:** `MONTHLY_AUDIO_GB_GLOBAL` defaults to `1500` GB (~30%). Streamed bytes are accumulated in memory and flushed to `audio_usage` every 15 seconds and on clean shutdown. A warning is logged once global usage crosses 80% of the monthly cap.
+- **Bandwidth guard & Download guard:** `MONTHLY_AUDIO_GB_GLOBAL` defaults to `2048` GB. Streamed bytes are accumulated in memory and flushed to `audio_usage` every 15 seconds and on clean shutdown. A warning is logged once global usage crosses 80% of the monthly cap. Phase 5 adds download guards (`DAILY_DOWNLOAD_MB_PER_USER=1000`, `MAX_DOWNLOAD_TRACK_MB=80`, `MAX_CONCURRENT_DOWNLOADS_PER_USER=2`, `MAX_CONCURRENT_DOWNLOADS_GLOBAL=4`) tracked in `download_usage` and flushed on the same cadence.
 - **Admin CLI Tools:**
   - `python -m app.tools.create_user --email owner@example.com`: Create or reset owner account (prompts for strong password, enforces >=12 chars, revokes existing refresh tokens on reset).
   - `python -m app.tools.selftest_stream`: Safe CLI stream resolver test verifying yt-dlp functions without logging URLs.

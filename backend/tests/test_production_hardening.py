@@ -44,8 +44,10 @@ async def test_ready_endpoint_status(client, test_db_path):
         assert res_fail.status_code == 503
         assert res_fail.json() == {"status": "not_ready"}
     finally:
+        from app.db.session import get_expected_migration_heads
+        head = list(get_expected_migration_heads())[0]
         async with engine.connect() as conn:
-            await conn.execute(text("UPDATE alembic_version SET version_num = '0002_user_data';"))
+            await conn.execute(text(f"UPDATE alembic_version SET version_num = '{head}';"))
             await conn.commit()
 
 

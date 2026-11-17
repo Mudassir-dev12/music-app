@@ -122,6 +122,7 @@ async def get_audio_user(
                 detail="Invalid or expired audio ticket.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        request.state.ticket_purpose = payload.get("purpose", "stream")
         return await _resolve_active_user(request, payload.get("sub"), db)
 
     if credentials and credentials.credentials:
@@ -133,6 +134,7 @@ async def get_audio_user(
                 detail="Invalid or expired authentication token.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        request.state.ticket_purpose = "stream"
         return await _resolve_active_user(request, payload.get("sub"), db)
 
     raise HTTPException(

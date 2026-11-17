@@ -92,6 +92,8 @@ async def test_migration_head_check():
         await check_database_at_head()
 
     # Restore correct head
+    from app.db.session import get_expected_migration_heads
+    expected_head = list(get_expected_migration_heads())[0]
     async with engine.connect() as conn:
-        await conn.execute(text("UPDATE alembic_version SET version_num = '0002_user_data';"))
+        await conn.execute(text(f"UPDATE alembic_version SET version_num = '{expected_head}';"))
         await conn.commit()

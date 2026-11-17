@@ -1,5 +1,7 @@
 import asyncio
+from collections import defaultdict
 import logging
+import time
 from typing import AsyncGenerator, Optional
 from fastapi import HTTPException, status
 from fastapi.responses import Response, StreamingResponse
@@ -18,6 +20,9 @@ class AudioProxy:
     def __init__(self, resolver: StreamResolver):
         self.resolver = resolver
         self._semaphore = asyncio.Semaphore(settings.MAX_CONCURRENT_STREAMS)
+        self._download_semaphore = asyncio.Semaphore(settings.MAX_CONCURRENT_DOWNLOADS_GLOBAL)
+        self._user_downloads: dict[str, int] = defaultdict(int)
+        self._download_lock = asyncio.Lock()
 
     def _acquire_semaphore_nonblocking(self) -> None:
         if self._semaphore.locked():
@@ -30,6 +35,29 @@ class AudioProxy:
 
     def _release_semaphore(self) -> None:
         self._semaphore.release()
+
+    async def _acquire_download_slot(self, user_id: str) -> None:
+        async with self._download_lock:
+            if self._user_downloads[user_id] >= settings.MAX_CONCURRENT_DOWNLOADS_PER_USER:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Maximum concurrent downloads reached for your user account.",
+                    headers={"Retry-After": "5"},
+                )
+            if self._download_semaphore.locked():
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Global maximum concurrent downloads reached. Please try again shortly.",
+                    headers={"Retry-After": "5"},
+                )
+            self._download_semaphore._value -= 1
+            self._user_downloads[user_id] += 1
+
+    async def _release_download_slot(self, user_id: str) -> None:
+        async with self._download_lock:
+            if self._user_downloads[user_id] > 0:
+                self._user_downloads[user_id] -= 1
+            self._download_semaphore.release()
 
     def _parse_range(self, range_header: Optional[str], total_size: int) -> tuple[int, int, int]:
         if not range_header or not range_header.startswith("bytes="):
@@ -124,17 +152,37 @@ class AudioProxy:
         user_id: str,
         db: AsyncSession,
         range_header: Optional[str] = None,
+        purpose: str = "stream",
     ) -> Response:
-        # 1. Bandwidth check
-        await bandwidth_guard.check_limits(user_id, db)
+        is_download = (purpose == "download")
+        start_time = time.monotonic()
+        semaphore_acquired = False
+        download_slot_acquired = False
 
-        # 2. Concurrency check (non-blocking)
-        self._acquire_semaphore_nonblocking()
-        semaphore_acquired = True
+        if is_download:
+            # 1. Download Bandwidth check
+            await bandwidth_guard.check_download_limits(user_id, db)
+            # 2. Download Concurrency check
+            await self._acquire_download_slot(user_id)
+            download_slot_acquired = True
+        else:
+            # 1. Bandwidth check
+            await bandwidth_guard.check_limits(user_id, db)
+            # 2. Concurrency check (non-blocking)
+            self._acquire_semaphore_nonblocking()
+            semaphore_acquired = True
 
         # 3. Check Disk Cache First (Instant SSD Delivery)
         if audio_cache.is_cached(video_id):
             total_size = audio_cache.get_size(video_id)
+            if is_download and total_size > settings.MAX_DOWNLOAD_TRACK_MB * 1024 * 1024:
+                if download_slot_acquired:
+                    await self._release_download_slot(user_id)
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail="Audio file exceeds maximum download track size limit.",
+                )
+
             start, end, length = self._parse_range(range_header, total_size)
             status_code = 206 if range_header else 200
             res_headers = {
@@ -155,9 +203,19 @@ class AudioProxy:
                         bytes_sent += len(chunk)
                         yield chunk
                 finally:
-                    self._release_semaphore()
-                    if bytes_sent > 0:
-                        await bandwidth_guard.record_bytes(user_id, bytes_sent)
+                    if is_download:
+                        await self._release_download_slot(user_id)
+                        duration = time.monotonic() - start_time
+                        logger.info(
+                            f"Download finished: video_id={video_id} bytes={bytes_sent} duration={duration:.2f}s status={status_code}"
+                        )
+                        if bytes_sent > 0:
+                            await bandwidth_guard.record_bytes(user_id, bytes_sent)
+                            await bandwidth_guard.record_download_bytes(user_id, bytes_sent)
+                    else:
+                        self._release_semaphore()
+                        if bytes_sent > 0:
+                            await bandwidth_guard.record_bytes(user_id, bytes_sent)
 
             return StreamingResponse(
                 cached_content_iterator(),
@@ -194,8 +252,12 @@ class AudioProxy:
             if upstream_resp.status_code not in (200, 206):
                 await upstream_resp.aclose()
                 await client.aclose()
-                self._release_semaphore()
-                semaphore_acquired = False
+                if is_download:
+                    await self._release_download_slot(user_id)
+                    download_slot_acquired = False
+                else:
+                    self._release_semaphore()
+                    semaphore_acquired = False
                 logger.error(
                     f"Upstream stream failed with status {upstream_resp.status_code} for {video_id}"
                 )
@@ -203,6 +265,30 @@ class AudioProxy:
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail="Upstream audio provider returned an error.",
                 )
+
+            if is_download:
+                upstream_total_size = None
+                if "content-range" in upstream_resp.headers:
+                    try:
+                        cr = upstream_resp.headers["content-range"]
+                        if "/" in cr:
+                            upstream_total_size = int(cr.split("/")[1])
+                    except Exception:
+                        pass
+                elif "content-length" in upstream_resp.headers and not range_header:
+                    try:
+                        upstream_total_size = int(upstream_resp.headers["content-length"])
+                    except Exception:
+                        pass
+                if upstream_total_size and upstream_total_size > settings.MAX_DOWNLOAD_TRACK_MB * 1024 * 1024:
+                    await upstream_resp.aclose()
+                    await client.aclose()
+                    await self._release_download_slot(user_id)
+                    download_slot_acquired = False
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail="Audio file exceeds maximum download track size limit.",
+                    )
 
             # Filter response headers
             res_headers = {
@@ -269,9 +355,19 @@ class AudioProxy:
 
                     await upstream_resp.aclose()
                     await client.aclose()
-                    self._release_semaphore()
-                    if bytes_sent > 0:
-                        await bandwidth_guard.record_bytes(user_id, bytes_sent)
+                    if is_download:
+                        await self._release_download_slot(user_id)
+                        duration = time.monotonic() - start_time
+                        logger.info(
+                            f"Download finished: video_id={video_id} bytes={bytes_sent} duration={duration:.2f}s status={upstream_resp.status_code}"
+                        )
+                        if bytes_sent > 0:
+                            await bandwidth_guard.record_bytes(user_id, bytes_sent)
+                            await bandwidth_guard.record_download_bytes(user_id, bytes_sent)
+                    else:
+                        self._release_semaphore()
+                        if bytes_sent > 0:
+                            await bandwidth_guard.record_bytes(user_id, bytes_sent)
 
             return StreamingResponse(
                 content_iterator(),
@@ -283,6 +379,8 @@ class AudioProxy:
             if upstream_resp:
                 await upstream_resp.aclose()
             await client.aclose()
-            if semaphore_acquired:
+            if download_slot_acquired:
+                await self._release_download_slot(user_id)
+            elif semaphore_acquired:
                 self._release_semaphore()
             raise

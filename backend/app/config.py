@@ -78,6 +78,12 @@ class Settings(BaseSettings):
     TTL_RADIO: int = 900
     STALE_EXTRA_TTL: int = 86400
 
+    # Phase 5: Download Quota & Concurrency Limits
+    DAILY_DOWNLOAD_MB_PER_USER: int = 1000
+    MAX_DOWNLOAD_TRACK_MB: int = 80
+    MAX_CONCURRENT_DOWNLOADS_PER_USER: int = 2
+    MAX_CONCURRENT_DOWNLOADS_GLOBAL: int = 4
+
     @property
     def cors_origins_list(self) -> List[str]:
         if not self.CORS_ORIGINS:
@@ -94,6 +100,20 @@ class Settings(BaseSettings):
                 "Startup aborted."
             )
 
+    def validate_download_config(self) -> None:
+        errors = []
+        for name in [
+            "DAILY_DOWNLOAD_MB_PER_USER",
+            "MAX_DOWNLOAD_TRACK_MB",
+            "MAX_CONCURRENT_DOWNLOADS_PER_USER",
+            "MAX_CONCURRENT_DOWNLOADS_GLOBAL",
+        ]:
+            val = getattr(self, name, None)
+            if not isinstance(val, int) or isinstance(val, bool) or val <= 0:
+                errors.append(f"{name} must be a positive integer (found: {val}).")
+        if errors:
+            raise ValueError("\n".join(errors))
+
     def validate_production_config(self) -> None:
         errors = []
         if not self.APP_JWT_SECRET or len(self.APP_JWT_SECRET) < 32:
@@ -105,6 +125,10 @@ class Settings(BaseSettings):
                 origins = [orig.strip() for orig in self.CORS_ORIGINS.split(",") if orig.strip()]
                 if "*" in origins:
                     errors.append("In production mode, CORS_ORIGINS must not contain wildcard '*'.")
+        try:
+            self.validate_download_config()
+        except ValueError as e:
+            errors.append(str(e))
         if errors:
             raise ValueError("\n".join(errors))
 
