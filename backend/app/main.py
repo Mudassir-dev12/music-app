@@ -29,8 +29,8 @@ async def lifespan(app: FastAPI):
     # Setup structured logging
     setup_logging(level="INFO")
 
-    # 1. Startup validation: APP_JWT_SECRET
-    settings.validate_jwt_secret()
+    # 1. Startup validation
+    settings.validate_production_config()
 
     # 2. Database migration head check
     await check_database_at_head()
@@ -53,10 +53,15 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown complete.")
 
 
+is_prod = settings.APP_ENV == "production"
+
 app = FastAPI(
     title="Melodia Backend Core",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url=None if is_prod else "/docs",
+    redoc_url=None if is_prod else "/redoc",
+    openapi_url=None if is_prod else "/openapi.json",
 )
 
 # Request logging & request-ID middleware

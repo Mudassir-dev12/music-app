@@ -89,5 +89,19 @@ class Settings(BaseSettings):
                 "Startup aborted."
             )
 
+    def validate_production_config(self) -> None:
+        errors = []
+        if not self.APP_JWT_SECRET or len(self.APP_JWT_SECRET) < 32:
+            errors.append("APP_JWT_SECRET must be set and be at least 32 characters long.")
+        if self.APP_ENV == "production":
+            if self.HOST != "127.0.0.1":
+                errors.append(f"In production mode, HOST must be 127.0.0.1 (found: {self.HOST}).")
+            if self.CORS_ORIGINS:
+                origins = [orig.strip() for orig in self.CORS_ORIGINS.split(",") if orig.strip()]
+                if "*" in origins:
+                    errors.append("In production mode, CORS_ORIGINS must not contain wildcard '*'.")
+        if errors:
+            raise ValueError("\n".join(errors))
+
 
 settings = Settings()

@@ -93,5 +93,5 @@ async def test_migration_head_check():
 
     # Restore correct head
     async with engine.connect() as conn:
-        await conn.execute(text("UPDATE alembic_version SET version_num = '0001_init';"))
+        await conn.execute(text("UPDATE alembic_version SET version_num = '0002_user_data';"))
         await conn.commit()

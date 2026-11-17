@@ -103,15 +103,34 @@ def ensure_db_permissions() -> None:
                     pass
 
 
+def get_expected_migration_heads() -> set[str]:
+    """Finds expected migration heads from alembic.ini or fallback to latest known."""
+    try:
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        ini_path = os.path.join(backend_dir, "alembic.ini")
+        if os.path.exists(ini_path):
+            from alembic.config import Config
+            from alembic.script import ScriptDirectory
+            cfg = Config(ini_path)
+            script = ScriptDirectory.from_config(cfg)
+            heads = set(script.get_heads())
+            if heads:
+                return heads
+    except Exception:
+        pass
+    return {"0002_user_data"}
+
+
 async def check_database_at_head() -> None:
     """Verifies that the database has the latest alembic migration applied."""
     eng, _ = init_db()
     ensure_db_permissions()
+    expected_heads = get_expected_migration_heads()
     async with eng.connect() as conn:
         try:
             result = await conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1"))
             row = result.fetchone()
-            if not row or row[0] not in ("0001_init", "0002_user_data"):
+            if not row or row[0] not in expected_heads:
                 raise RuntimeError(
                     f"Database is not at migration head (found: {row[0] if row else 'none'}). "
                     "Run 'python -m alembic upgrade head' first."
