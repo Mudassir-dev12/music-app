@@ -136,5 +136,6 @@ void main() {
     expect(find.text('Play'), findsOneWidget);
     expect(find.text('Shuffle'), findsOneWidget);
     expect(find.text('My Favorite Song'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
   });
 }

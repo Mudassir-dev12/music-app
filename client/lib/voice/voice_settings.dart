@@ -92,3 +92,4 @@ class VoiceSettingsNotifier extends Notifier<VoiceSettings> {
     await _prefs?.setBool(_kAllowSearchNoWake, value);
   }
 }
+

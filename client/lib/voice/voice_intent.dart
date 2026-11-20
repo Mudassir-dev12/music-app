@@ -672,3 +672,4 @@ final class Cancel extends VoiceIntent {
   @override
   String toString() => 'Cancel()';
 }
+

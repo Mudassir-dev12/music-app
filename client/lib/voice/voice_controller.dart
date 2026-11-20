@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/api_client.dart';
 import '../api/models.dart';
 import '../player/player_controller.dart';
 import 'command_deduper.dart';
@@ -257,12 +258,35 @@ class VoiceController extends Notifier<VoiceState> {
           await _executeIntent(candidates.first);
         }
       case NoMatch():
-        // Unknown command
+        if (settings.aiFallbackEnabled) {
+          final aiIntent = await _callAiFallback(transcript, settings.preferredLanguage);
+          if (aiIntent != null) {
+            await _executeIntent(aiIntent);
+            return;
+          }
+        }
         if (!state.isRideMode) {
           await _speakFeedback('Sorry, I did not catch that.');
         }
         _afterActionCycle();
     }
+  }
+
+  Future<VoiceIntent?> _callAiFallback(String utterance, String language) async {
+    try {
+      final client = ref.read(apiClientProvider);
+      final resp = await client.post('/voice/interpret', {
+        'utterance': utterance,
+        'language': language == 'auto' ? null : language,
+      });
+      if (resp is Map<String, dynamic> && resp['recognized'] == true) {
+        final intentJson = resp['intent'] as Map<String, dynamic>?;
+        if (intentJson != null) {
+          return VoiceIntent.fromJson(intentJson);
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<bool> _handleDisambiguationChoice(String text) async {

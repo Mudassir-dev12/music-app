@@ -116,3 +116,4 @@ class SleepTimerController extends Notifier<SleepTimerState> {
     state = const SleepTimerState();
   }
 }
+

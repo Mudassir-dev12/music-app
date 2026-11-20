@@ -61,3 +61,4 @@ abstract class AudioRoutePort {
   Future<bool> isHeadsetOrBluetoothConnected();
   Stream<bool> get onRouteChanged;
 }
+
