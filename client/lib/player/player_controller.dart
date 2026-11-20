@@ -483,10 +483,26 @@ class PlayerController extends Notifier<PlayerStateData> {
     _persistence.saveStateDebounced(state);
   }
 
+  void setShuffle(bool enable) {
+    if (state.queue.shuffle != enable) {
+      toggleShuffle();
+    }
+  }
+
   void cycleRepeat() {
     final newQueue = q.cycleRepeat(state.queue);
     state = state.copyWith(queue: newQueue);
     _persistence.saveStateDebounced(state);
+  }
+
+  void setRepeat(q.RepeatMode mode) {
+    final newQueue = state.queue.copyWith(repeat: mode);
+    state = state.copyWith(queue: newQueue);
+    _persistence.saveStateDebounced(state);
+  }
+
+  Future<void> restart() async {
+    await seekTo(Duration.zero);
   }
 
   void enqueueNext(Track track) {
