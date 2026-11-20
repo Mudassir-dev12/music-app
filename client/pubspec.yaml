@@ -21,6 +21,9 @@ dependencies:
   web: ^1.1.1
   connectivity_plus: ^7.3.2
   path_provider: ^2.1.6
+  speech_to_text: ^7.5.0
+  flutter_tts: ^4.2.5
+  flutter_foreground_task: ^11.0.3
 
 dev_dependencies:
   flutter_test:
