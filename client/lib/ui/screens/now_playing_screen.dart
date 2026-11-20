@@ -12,6 +12,7 @@ import '../../player/queue.dart';
 import '../../theme/tokens.dart';
 import '../widgets/like_button.dart';
 import '../widgets/lyrics_view.dart';
+import '../voice/mic_button.dart';
 import '../widgets/marquee_text.dart';
 import '../widgets/scrub_bar.dart';
 import '../widgets/track_more_menu.dart';
@@ -194,13 +195,27 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen>
                                 borderRadius: BorderRadius.circular(2),
                               ),
                             ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.more_horiz_rounded,
-                                color: tokens.text,
-                                size: 24,
-                              ),
-                              onPressed: () => _showMoreMenu(context, currentTrack),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.two_wheeler_rounded,
+                                    color: tokens.text,
+                                    size: 24,
+                                  ),
+                                  tooltip: 'Ride Mode',
+                                  onPressed: () => context.push('/ride-mode'),
+                                ),
+                                const MicButton(iconSize: 22),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.more_horiz_rounded,
+                                    color: tokens.text,
+                                    size: 24,
+                                  ),
+                                  onPressed: () => _showMoreMenu(context, currentTrack),
+                                ),
+                              ],
                             ),
                           ],
                         ),

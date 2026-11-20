@@ -26,6 +26,7 @@ import 'ui/screens/search_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/yt_playlist_screen.dart';
 import 'ui/shell/adaptive_shell.dart';
+import 'ui/voice/ride_mode_screen.dart';
 import 'ui/widgets/server_url_dialog.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -150,6 +151,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => const MaterialPage(
           fullscreenDialog: true,
           child: QueuePanelScreen(),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/ride-mode',
+        pageBuilder: (context, state) => const MaterialPage(
+          fullscreenDialog: true,
+          child: RideModeScreen(),
         ),
       ),
     ],

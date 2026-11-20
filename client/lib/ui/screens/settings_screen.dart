@@ -11,6 +11,7 @@ import '../../downloads/offline_mode.dart';
 import '../../player/autoplay_controller.dart';
 import '../../theme/theme_controller.dart';
 import '../../theme/tokens.dart';
+import '../voice/voice_settings_section.dart';
 import '../widgets/server_url_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -301,6 +302,10 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
           ),
+          const SizedBox(height: MelodiaTokens.spacingXl),
+
+          // VOICE CONTROL & RIDE MODE
+          const VoiceSettingsSection(),
           const SizedBox(height: MelodiaTokens.spacingXl),
 
           // 3. LIBRARY

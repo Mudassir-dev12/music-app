@@ -13,6 +13,7 @@ import '../../data/user_data_providers.dart';
 import '../../downloads/offline_mode.dart';
 import '../../player/player_controller.dart';
 import '../../theme/tokens.dart';
+import '../voice/mic_button.dart';
 import '../widgets/busy_banner.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_state.dart';
@@ -330,7 +331,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   _onQueryChanged('');
                                 },
                                 child: Icon(Icons.cancel_rounded, color: tokens.textSecondary, size: 20),
-                              ),
+                              )
+                            else
+                              const MicButton(iconSize: 20),
                           ],
                         ),
                       ),
