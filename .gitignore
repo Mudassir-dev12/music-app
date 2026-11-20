@@ -69,6 +69,13 @@ client/windows/flutter/generated_plugin_registrant.cc
 client/windows/flutter/generated_plugin_registrant.h
 client/windows/flutter/generated_plugins.cmake
 
+# OS
+desktop.ini
+Icon.ico
+.hidden
+Thumbs.db
+.DS_Store
+
 # IDE
 .idea/
 *.iml

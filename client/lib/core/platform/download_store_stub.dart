@@ -79,3 +79,4 @@ class DefaultDownloadStore implements DownloadStore {
 
 DownloadStore createDownloadStore({String? customBaseDir}) =>
     DefaultDownloadStore(customBaseDir: customBaseDir);
+

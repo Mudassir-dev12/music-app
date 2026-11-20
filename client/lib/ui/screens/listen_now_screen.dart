@@ -103,15 +103,13 @@ class ListenNowScreen extends ConsumerWidget {
                   final topShelf = chartShelves.first;
                   return SliverList(
                     delegate: SliverChildListDelegate([
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingLg),
-                        child: SectionHeader(
-                          title: 'Top Hits',
-                          subtitle: topShelf.subtitle ?? 'Trending music for you',
-                        ),
+                      SectionHeader(
+                        title: 'Top Hits',
+                        subtitle: topShelf.subtitle ?? 'Trending music for you',
                       ),
                       const SizedBox(height: MelodiaTokens.spacingMd),
                       AlbumCarousel(
+                        height: 245,
                         children: topShelf.items.map((item) {
                           return MediaItemCard(item: item, width: 170);
                         }).toList(),
@@ -129,17 +127,15 @@ class ListenNowScreen extends ConsumerWidget {
             // A. Top Picks hero section (first shelf with large cards)
             final topShelf = shelves.first;
             widgets.add(
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingLg),
-                child: SectionHeader(
-                  title: 'Top Picks',
-                  subtitle: topShelf.subtitle ?? 'Hand-picked music for today',
-                ),
+              SectionHeader(
+                title: 'Top Picks',
+                subtitle: topShelf.subtitle ?? 'Hand-picked music for today',
               ),
             );
             widgets.add(const SizedBox(height: MelodiaTokens.spacingMd));
             widgets.add(
               AlbumCarousel(
+                height: 275,
                 children: topShelf.items.map((item) {
                   return MediaItemCard(
                     item: item,
@@ -194,30 +190,14 @@ class ListenNowScreen extends ConsumerWidget {
             final topCharts = chartShelves.first;
             return SliverList(
               delegate: SliverChildListDelegate([
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingLg),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SectionHeader(
-                        title: 'Trending Charts',
-                        subtitle: 'Top hits and trending music',
-                      ),
-                      GestureDetector(
-                        onTap: () => context.go('/browse'),
-                        child: Text(
-                          'See All',
-                          style: MelodiaTokens.subhead.copyWith(
-                            color: tokens.accent,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                SectionHeader(
+                  title: 'Trending Charts',
+                  subtitle: 'Top hits and trending music',
+                  onSeeAll: () => context.go('/browse'),
                 ),
                 const SizedBox(height: MelodiaTokens.spacingMd),
                 AlbumCarousel(
+                  height: 235,
                   children: topCharts.items.take(8).map((item) {
                     return MediaItemCard(item: item, width: 150);
                   }).toList(),
@@ -235,15 +215,13 @@ class ListenNowScreen extends ConsumerWidget {
             if (recentTracks.isNotEmpty) {
               return SliverList(
                 delegate: SliverChildListDelegate([
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingLg),
-                    child: SectionHeader(
-                      title: 'Recently Played',
-                      subtitle: 'Jump back into your recent listening',
-                    ),
+                  const SectionHeader(
+                    title: 'Recently Played',
+                    subtitle: 'Jump back into your recent listening',
                   ),
                   const SizedBox(height: MelodiaTokens.spacingMd),
                   AlbumCarousel(
+                    height: 235,
                     children: recentTracks.map((track) {
                       return AlbumCard(
                         title: track.title,
@@ -270,15 +248,13 @@ class ListenNowScreen extends ConsumerWidget {
                 }
                 return SliverList(
                   delegate: SliverChildListDelegate([
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingLg),
-                      child: SectionHeader(
-                        title: 'Recently Played',
-                        subtitle: 'Jump back into your recent listening',
-                      ),
+                    const SectionHeader(
+                      title: 'Recently Played',
+                      subtitle: 'Jump back into your recent listening',
                     ),
                     const SizedBox(height: MelodiaTokens.spacingMd),
                     AlbumCarousel(
+                      height: 235,
                       children: localTracks.map((track) {
                         return AlbumCard(
                           title: track.title,
@@ -308,15 +284,13 @@ class ListenNowScreen extends ConsumerWidget {
           data: (playlists) {
             return SliverList(
               delegate: SliverChildListDelegate([
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingLg),
-                  child: SectionHeader(
-                    title: 'Your Playlists',
-                    subtitle: 'Playlists you created and liked tracks',
-                  ),
+                const SectionHeader(
+                  title: 'Your Playlists',
+                  subtitle: 'Playlists you created and liked tracks',
                 ),
                 const SizedBox(height: MelodiaTokens.spacingMd),
                 AlbumCarousel(
+                  height: 235,
                   children: [
                     // Liked Songs shortcut card
                     _buildLikedSongsCard(context, tokens),

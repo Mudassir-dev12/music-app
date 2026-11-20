@@ -5,7 +5,7 @@ class AlbumCarousel extends StatelessWidget {
   const AlbumCarousel({
     super.key,
     required this.children,
-    this.height = 220,
+    this.height = 235,
     this.itemSpacing = MelodiaTokens.spacingMd,
   });
 

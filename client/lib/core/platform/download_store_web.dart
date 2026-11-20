@@ -79,3 +79,4 @@ class WebDownloadStore implements DownloadStore {
 
 DownloadStore createDownloadStore({String? customBaseDir}) =>
     WebDownloadStore(customBaseDir: customBaseDir);
+

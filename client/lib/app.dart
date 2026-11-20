@@ -225,61 +225,43 @@ class MelodiaApp extends ConsumerWidget {
           body: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: MelodiaTokens.spacingXl),
-              child: Builder(
-                builder: (context) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          MelodiaTokens.dark.accent,
-                        ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.graphic_eq_rounded,
+                    size: 64,
+                    color: MelodiaTokens.dark.accent,
+                  ),
+                  const SizedBox(height: MelodiaTokens.spacingMd),
+                  Text(
+                    'Melodia',
+                    style: MelodiaTokens.title1.copyWith(
+                      color: MelodiaTokens.dark.text,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: MelodiaTokens.spacingXl),
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        MelodiaTokens.dark.accent,
                       ),
-                      const SizedBox(height: MelodiaTokens.spacingLg),
-                      Text(
-                        session.connectingMessage ?? 'Connecting to your music server...',
-                        textAlign: TextAlign.center,
-                        style: MelodiaTokens.headline.copyWith(
-                          color: MelodiaTokens.dark.text,
-                        ),
-                      ),
-                      const SizedBox(height: MelodiaTokens.spacingSm),
-                      Text(
-                        config.apiUrl,
-                        textAlign: TextAlign.center,
-                        style: MelodiaTokens.caption.copyWith(
-                          color: MelodiaTokens.dark.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: MelodiaTokens.spacingLg),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: MelodiaTokens.spacingMd,
-                        runSpacing: MelodiaTokens.spacingSm,
-                        children: [
-                          FilledButton.icon(
-                            icon: const Icon(Icons.refresh_rounded, size: 18),
-                            label: const Text('Retry Now'),
-                            onPressed: () {
-                              ref.invalidate(sessionProvider);
-                            },
-                          ),
-                          OutlinedButton.icon(
-                            icon: const Icon(Icons.edit_rounded, size: 18),
-                            label: const Text('Server URL'),
-                            onPressed: () => showServerUrlDialog(context, ref),
-                          ),
-                          TextButton(
-                            child: const Text('Continue Offline'),
-                            onPressed: () {
-                              ref.read(sessionProvider.notifier).continueOffline();
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
+                    ),
+                  ),
+                  if (session.isConnecting) ...[
+                    const SizedBox(height: MelodiaTokens.spacingXl),
+                    TextButton(
+                      child: const Text('Continue Offline'),
+                      onPressed: () {
+                        ref.read(sessionProvider.notifier).continueOffline();
+                      },
+                    ),
+                  ],
+                ],
               ),
             ),
           ),

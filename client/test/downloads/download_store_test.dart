@@ -106,3 +106,4 @@ void main() {
     expect(await store.readOfflineCache('k2'), isNull);
   });
 }
+
