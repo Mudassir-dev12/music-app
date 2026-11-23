@@ -9,6 +9,7 @@ class PlayerStateData {
     this.duration = Duration.zero,
     this.volume = 1.0,
     this.errorMessage,
+    this.showLoadingIndicator = false,
     required this.queue,
   });
 
@@ -17,6 +18,7 @@ class PlayerStateData {
   final Duration duration;
   final double volume;
   final String? errorMessage;
+  final bool showLoadingIndicator;
   final QueueState queue;
 
   bool get isPlaying =>
@@ -24,7 +26,7 @@ class PlayerStateData {
       status == PlayerStatus.loading ||
       status == PlayerStatus.buffering;
   bool get isBuffering => status == PlayerStatus.buffering;
-  bool get isLoading => status == PlayerStatus.loading;
+  bool get isLoading => showLoadingIndicator;
 
   PlayerStateData copyWith({
     PlayerStatus? status,
@@ -32,6 +34,7 @@ class PlayerStateData {
     Duration? duration,
     double? volume,
     String? errorMessage,
+    bool? showLoadingIndicator,
     bool clearError = false,
     QueueState? queue,
   }) {
@@ -41,6 +44,7 @@ class PlayerStateData {
       duration: duration ?? this.duration,
       volume: volume ?? this.volume,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      showLoadingIndicator: showLoadingIndicator ?? this.showLoadingIndicator,
       queue: queue ?? this.queue,
     );
   }

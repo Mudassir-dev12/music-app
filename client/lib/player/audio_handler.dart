@@ -6,9 +6,21 @@ import 'package:just_audio/just_audio.dart';
 
 import '../api/models.dart';
 
+/// Buffering configuration named constants.
+/// - kMinBufferDuration: minimum audio buffered before playback continues (4s).
+/// - kMaxBufferDuration: player forward buffer cap (60s forward buffer to absorb drops).
+/// - kBufferForPlaybackDuration: playback starts after ~1s of audio is buffered for instant feel.
+/// - kBufferForPlaybackAfterRebufferDuration: after a network stall, wait for 3s to ride out network drops.
+/// - kDarwinPreferredForwardBufferDuration: iOS preferred forward buffer duration (45s).
+const Duration kMinBufferDuration = Duration(seconds: 4);
+const Duration kMaxBufferDuration = Duration(seconds: 60);
+const Duration kBufferForPlaybackDuration = Duration(milliseconds: 1000);
+const Duration kBufferForPlaybackAfterRebufferDuration = Duration(milliseconds: 3000);
+const Duration kDarwinPreferredForwardBufferDuration = Duration(seconds: 45);
+
 /// Wraps [just_audio.AudioPlayer] as an [audio_service.BaseAudioHandler].
 ///
-/// Handles single-source playback (URLs resolved lazily with tickets) and
+/// Handles single-source and concatenating playback (URLs resolved lazily with tickets) and
 /// maps lock-screen / notification controls to callbacks or internal state.
 class MelodiaAudioHandler extends BaseAudioHandler with SeekHandler {
   MelodiaAudioHandler({AudioPlayer? player})
@@ -16,13 +28,14 @@ class MelodiaAudioHandler extends BaseAudioHandler with SeekHandler {
             AudioPlayer(
               audioLoadConfiguration: const AudioLoadConfiguration(
                 androidLoadControl: AndroidLoadControl(
-                  minBufferDuration: Duration(seconds: 4),
-                  maxBufferDuration: Duration(seconds: 30),
-                  bufferForPlaybackDuration: Duration(milliseconds: 200),
-                  bufferForPlaybackAfterRebufferDuration: Duration(milliseconds: 400),
+                  minBufferDuration: kMinBufferDuration,
+                  maxBufferDuration: kMaxBufferDuration,
+                  bufferForPlaybackDuration: kBufferForPlaybackDuration,
+                  bufferForPlaybackAfterRebufferDuration: kBufferForPlaybackAfterRebufferDuration,
                 ),
                 darwinLoadControl: DarwinLoadControl(
                   automaticallyWaitsToMinimizeStalling: false,
+                  preferredForwardBufferDuration: kDarwinPreferredForwardBufferDuration,
                 ),
               ),
             ) {
@@ -90,6 +103,16 @@ class MelodiaAudioHandler extends BaseAudioHandler with SeekHandler {
         artUri: track.thumbnail != null ? Uri.tryParse(track.thumbnail!) : null,
       ),
     );
+  }
+
+  Future<Duration?> playSource(AudioSource source, {Duration? initialPosition}) async {
+    try {
+      final duration = await _player.setAudioSource(source, initialPosition: initialPosition);
+      await _player.play();
+      return duration;
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<Duration?> playUrl(String url, {Duration? initialPosition}) async {

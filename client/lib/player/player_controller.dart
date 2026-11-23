@@ -8,17 +8,21 @@ import '../api/discovery_api.dart';
 import '../api/errors.dart';
 import '../api/models.dart';
 import '../core/connectivity/connectivity_controller.dart';
+import '../core/platform/audio_cache.dart';
 import '../core/platform/download_store.dart';
 import '../core/platform/media_session.dart';
 import '../downloads/download_manager.dart';
 import '../downloads/download_repository.dart';
 import '../downloads/offline_mode.dart';
+import 'audio_cache_provider.dart';
 import 'audio_handler.dart';
 import 'audio_url_service.dart';
 import 'autoplay_controller.dart';
 import 'events.dart';
 import 'persistence.dart';
+import 'playback_metrics.dart';
 import 'player_state.dart';
+import 'prefetch_coordinator.dart';
 import 'queue.dart' as q;
 
 final audioHandlerProvider = Provider<MelodiaAudioHandler>((ref) {
@@ -35,6 +39,13 @@ class PlayerController extends Notifier<PlayerStateData> {
   ApiClient get _apiClient => ref.read(apiClientProvider);
   DownloadStore get _downloadStore => ref.read(downloadStoreProvider);
   DownloadManager get _downloadManager => ref.read(downloadManagerProvider);
+  AudioCache get _audioCache => ref.read(audioCacheProvider);
+  PlaybackMetrics get _metrics => ref.read(playbackMetricsProvider);
+  PrefetchCoordinator get _prefetchCoordinator => ref.read(prefetchCoordinatorProvider);
+
+  int _loadGeneration = 0;
+  Timer? _loadingTimer;
+  DateTime? _tapStartTime;
 
   int _consecutiveErrors = 0;
   String? _lastErrorVideoId;
@@ -200,60 +211,153 @@ class PlayerController extends Notifier<PlayerStateData> {
     await playList([track], 0);
   }
 
+  void _updateSlidingWindow() {
+    final current = state.queue.currentTrack;
+    if (current == null) return;
+
+    final windowIds = <String>{current.videoId};
+    final qState = state.queue;
+
+    // Previous 1
+    if (qState.currentIndex > 0 && qState.currentIndex - 1 < qState.queue.length) {
+      windowIds.add(qState.queue[qState.currentIndex - 1].videoId);
+    } else if (qState.repeat == q.RepeatMode.all && qState.queue.isNotEmpty) {
+      windowIds.add(qState.queue.last.videoId);
+    }
+
+    // Next 1 and Next 2
+    if (qState.playNextQueue.isNotEmpty) {
+      windowIds.add(qState.playNextQueue.first.videoId);
+      if (qState.playNextQueue.length > 1) {
+        windowIds.add(qState.playNextQueue[1].videoId);
+      } else if (qState.currentIndex + 1 < qState.queue.length) {
+        windowIds.add(qState.queue[qState.currentIndex + 1].videoId);
+      }
+    } else {
+      if (qState.currentIndex + 1 < qState.queue.length) {
+        windowIds.add(qState.queue[qState.currentIndex + 1].videoId);
+      } else if (qState.repeat == q.RepeatMode.all && qState.queue.isNotEmpty) {
+        windowIds.add(qState.queue.first.videoId);
+      }
+      if (qState.currentIndex + 2 < qState.queue.length) {
+        windowIds.add(qState.queue[qState.currentIndex + 2].videoId);
+      } else if (qState.repeat == q.RepeatMode.all && qState.queue.isNotEmpty) {
+        windowIds.add(qState.queue[(qState.currentIndex + 2) % qState.queue.length].videoId);
+      }
+    }
+
+    _audioCache.pinTracks(windowIds);
+    _prefetchCoordinator.warmUpQueue(qState.queue, qState.currentIndex);
+  }
+
   Future<void> _loadAndPlayCurrent({Duration? resumeAt}) async {
     final current = state.queue.currentTrack;
     if (current == null) {
-      state = state.copyWith(status: PlayerStatus.idle);
+      _loadingTimer?.cancel();
+      state = state.copyWith(status: PlayerStatus.idle, showLoadingIndicator: false);
       return;
     }
 
+    final gen = ++_loadGeneration;
+    _loadingTimer?.cancel();
+    _tapStartTime = DateTime.now();
+
+    // Instant-tap: immediately show track info, pause old, set state playing
+    _updateMetadata(current, Duration(seconds: current.durationSeconds ?? 0));
     state = state.copyWith(
-      status: PlayerStatus.loading,
+      status: PlayerStatus.playing,
+      showLoadingIndicator: false,
       clearError: true,
+      position: resumeAt ?? Duration.zero,
     );
+
+    // Show loading indicator only if audio has not started after 400 ms
+    _loadingTimer = Timer(const Duration(milliseconds: 400), () {
+      if (_loadGeneration == gen && state.status != PlayerStatus.error && !state.showLoadingIndicator) {
+        state = state.copyWith(showLoadingIndicator: true);
+      }
+    });
 
     _warmedUpNextTrack = false;
     _emitted30sEvent = false;
 
     try {
       Duration? duration;
+      PlaybackPath pathTaken = PlaybackPath.cold;
       String? localFilePath;
 
+      // 1. Downloaded file (Phase 5)
       if (_downloadStore.isSupported) {
         final exists = await _downloadStore.exists(current.videoId);
+        if (_loadGeneration != gen) return; // Stale tap canceled
         if (exists) {
           final size = await _downloadStore.sizeOf(current.videoId);
           final manifestTrack = _downloadManager.manifest.tracks[current.videoId];
           if (manifestTrack != null && manifestTrack.byteSize > 0 && size == manifestTrack.byteSize) {
             localFilePath = await _downloadStore.pathFor(current.videoId);
+            pathTaken = PlaybackPath.downloaded;
           } else if (!exists || size == 0) {
             await _downloadManager.removeDownloadedTrack(current.videoId);
           }
         }
       }
 
+      if (_loadGeneration != gen) return; // Stale tap canceled
+
+      // 2. On-device audio cache (full file)
+      if (localFilePath == null && _audioCache.isSupported) {
+        final cachedPath = await _audioCache.getCachedFilePath(current.videoId);
+        if (_loadGeneration != gen) return; // Stale tap canceled
+        if (cachedPath != null) {
+          localFilePath = cachedPath;
+          pathTaken = PlaybackPath.cacheFull;
+        }
+      }
+
       if (localFilePath != null) {
         duration = await _audioHandler.playFile(localFilePath, initialPosition: resumeAt);
       } else {
+        // 3. Online stream
         final isOffline = !ref.read(connectivityProvider).isOnline || ref.read(isOfflineModeProvider);
         if (isOffline) {
+          _loadingTimer?.cancel();
           state = state.copyWith(
             status: PlayerStatus.paused,
+            showLoadingIndicator: false,
             errorMessage: "This song isn't downloaded. Connect to the internet to stream.",
           );
           return;
         }
+
+        final isWarm = _urlService.ticketCache.hasValidTicket(current.videoId);
         final url = await _urlService.urlFor(current.videoId);
-        duration = await _audioHandler.playUrl(url, initialPosition: resumeAt);
+        if (_loadGeneration != gen) return; // Stale tap canceled
+
+        pathTaken = isWarm ? PlaybackPath.warm : PlaybackPath.cold;
+        final source = _audioCache.createAudioSource(Uri.parse(url), current.videoId);
+        duration = await _audioHandler.playSource(source, initialPosition: resumeAt);
       }
 
+      if (_loadGeneration != gen) return; // Stale tap canceled
+
+      _loadingTimer?.cancel();
       _consecutiveErrors = 0;
       _lastErrorVideoId = null;
       _wasPlayingBeforeNetworkFailure = false;
       _autoResumeAttempts = 0;
 
+      final elapsed = _tapStartTime != null
+          ? DateTime.now().difference(_tapStartTime!)
+          : Duration.zero;
+      _metrics.record(
+        videoId: current.videoId,
+        timeToFirstAudio: elapsed,
+        path: pathTaken,
+      );
+
       state = state.copyWith(
         status: PlayerStatus.playing,
+        showLoadingIndicator: false,
         duration: duration ?? Duration(seconds: current.durationSeconds ?? 0),
         position: resumeAt ?? Duration.zero,
       );
@@ -268,14 +372,18 @@ class PlayerController extends Notifier<PlayerStateData> {
       _persistence.addToRecentlyPlayed(current);
       _persistence.saveStateDebounced(state);
 
-      // Immediately warm up next track so transition / skip is instant
-      _warmUpNextTrack();
+      _updateSlidingWindow();
     } on RateLimitError catch (e) {
+      if (_loadGeneration != gen) return;
+      _loadingTimer?.cancel();
       state = state.copyWith(
         status: PlayerStatus.paused,
+        showLoadingIndicator: false,
         errorMessage: 'Bandwidth limit reached. Try again in ${e.retryAfterSeconds}s',
       );
     } catch (e) {
+      if (_loadGeneration != gen) return;
+      _loadingTimer?.cancel();
       final isOffline = !ref.read(connectivityProvider).isOnline;
       if (isOffline || isNetworkError(e)) {
         _wasPlayingBeforeNetworkFailure = true;
@@ -448,6 +556,9 @@ class PlayerController extends Notifier<PlayerStateData> {
   void _onTrackEnded() {
     final current = state.queue.currentTrack;
     if (current != null) {
+      if (_audioCache.isSupported) {
+        _audioCache.markFullyCached(current.videoId).catchError((_) => null);
+      }
       emitPlayerEvent(PlayerEvent(
         type: PlayerEventType.trackEnded,
         videoId: current.videoId,
@@ -481,6 +592,7 @@ class PlayerController extends Notifier<PlayerStateData> {
     final newQueue = q.toggleShuffle(state.queue);
     state = state.copyWith(queue: newQueue);
     _persistence.saveStateDebounced(state);
+    _updateSlidingWindow();
   }
 
   void setShuffle(bool enable) {
@@ -493,12 +605,14 @@ class PlayerController extends Notifier<PlayerStateData> {
     final newQueue = q.cycleRepeat(state.queue);
     state = state.copyWith(queue: newQueue);
     _persistence.saveStateDebounced(state);
+    _updateSlidingWindow();
   }
 
   void setRepeat(q.RepeatMode mode) {
     final newQueue = state.queue.copyWith(repeat: mode);
     state = state.copyWith(queue: newQueue);
     _persistence.saveStateDebounced(state);
+    _updateSlidingWindow();
   }
 
   Future<void> restart() async {
@@ -509,24 +623,28 @@ class PlayerController extends Notifier<PlayerStateData> {
     final newQueue = q.enqueueNext(state.queue, track);
     state = state.copyWith(queue: newQueue);
     _persistence.saveStateDebounced(state);
+    _updateSlidingWindow();
   }
 
   void enqueueLast(Track track) {
     final newQueue = q.enqueueLast(state.queue, track);
     state = state.copyWith(queue: newQueue);
     _persistence.saveStateDebounced(state);
+    _updateSlidingWindow();
   }
 
   void removeAt(int index) {
     final newQueue = q.removeAt(state.queue, index);
     state = state.copyWith(queue: newQueue);
     _persistence.saveStateDebounced(state);
+    _updateSlidingWindow();
   }
 
   void move(int from, int to) {
     final newQueue = q.move(state.queue, from, to);
     state = state.copyWith(queue: newQueue);
     _persistence.saveStateDebounced(state);
+    _updateSlidingWindow();
   }
 
   void clearPlayNext() {
@@ -534,6 +652,7 @@ class PlayerController extends Notifier<PlayerStateData> {
       queue: state.queue.copyWith(playNextQueue: const []),
     );
     _persistence.saveStateDebounced(state);
+    _updateSlidingWindow();
   }
 
   void _updateMetadata(Track track, Duration duration) {

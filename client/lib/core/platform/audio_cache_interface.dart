@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:just_audio/just_audio.dart';
 
 abstract class AudioCache {
   bool get isSupported;
@@ -10,6 +11,8 @@ abstract class AudioCache {
   Future<String?> getCachedFilePath(String videoId);
 
   Future<String> getCacheFilePath(String videoId);
+
+  AudioSource createAudioSource(Uri uri, String videoId);
 
   Future<void> markFullyCached(String videoId, {int? sizeBytes});
 

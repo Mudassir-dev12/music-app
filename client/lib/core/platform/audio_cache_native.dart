@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'audio_cache_interface.dart';
 
@@ -165,6 +166,15 @@ class NativeAudioCache implements AudioCache {
         }
       }
     } catch (_) {}
+  }
+
+  @override
+  AudioSource createAudioSource(Uri uri, String videoId) {
+    if (_cacheDir != null) {
+      final file = File('${_cacheDir!.path}/$videoId.m4a');
+      return LockCachingAudioSource(uri, cacheFile: file);
+    }
+    return AudioSource.uri(uri);
   }
 
   @override

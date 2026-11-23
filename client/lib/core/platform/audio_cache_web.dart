@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:just_audio/just_audio.dart';
 import 'audio_cache_interface.dart';
 
 class WebAudioCache implements AudioCache {
@@ -22,6 +23,9 @@ class WebAudioCache implements AudioCache {
 
   @override
   Future<String> getCacheFilePath(String videoId) async => '';
+
+  @override
+  AudioSource createAudioSource(Uri uri, String videoId) => AudioSource.uri(uri);
 
   @override
   Future<void> markFullyCached(String videoId, {int? sizeBytes}) async {}
