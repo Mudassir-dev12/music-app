@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import threading
 import time
 from typing import Any, List, Optional
 import anyio
@@ -110,6 +111,38 @@ def normalize_track_dict(item: dict) -> Optional[Track]:
 class YTMusicSource(MusicSource):
     def __init__(self):
         self._ytmusic = YTMusic()
+        self._ydl: Optional[yt_dlp.YoutubeDL] = None
+        self._ydl_lock = threading.Lock()
+
+    def _get_ydl(self) -> yt_dlp.YoutubeDL:
+        with self._ydl_lock:
+            if self._ydl is None:
+                node_path = shutil.which("node") or "/usr/local/bin/node"
+                ydl_opts: dict[str, Any] = {
+                    "format": "bestaudio[ext=m4a]/bestaudio/best[acodec!=none]/best",
+                    "quiet": True,
+                    "no_warnings": True,
+                    "noplaylist": True,
+                    "skip_download": True,
+                    "extract_flat": False,
+                    "writesubtitles": False,
+                    "writeautomaticsub": False,
+                    "writethumbnail": False,
+                    "no_color": True,
+                    "socket_timeout": 15,
+                    "retries": 2,
+                    "cachedir": "/var/www/music-app/.cache/yt-dlp",
+                }
+                if node_path and os.path.exists(node_path):
+                    ydl_opts["js_runtimes"] = {"node": {"path": node_path}}
+                cookie_path = os.getenv("YTDLP_COOKIES_FILE", "/var/www/music-app/data/cookies.txt")
+                if os.path.exists(cookie_path):
+                    ydl_opts["cookiefile"] = cookie_path
+                proxy = os.getenv("YTDLP_PROXY") or getattr(settings, "UPSTREAM_PROXY", None)
+                if proxy:
+                    ydl_opts["proxy"] = proxy
+                self._ydl = yt_dlp.YoutubeDL(ydl_opts)
+            return self._ydl
 
     def _sync_search(self, query: str, filter_type: str, limit: int) -> list[dict]:
         last_exc = None
@@ -152,30 +185,12 @@ class YTMusicSource(MusicSource):
         return {}
 
     def _sync_resolve_stream(self, video_id: str) -> ResolvedStream:
-        node_path = shutil.which("node") or "/usr/local/bin/node"
-        ydl_opts: dict[str, Any] = {
-            "format": "bestaudio[ext=m4a]/bestaudio/best[acodec!=none]/best",
-            "quiet": True,
-            "no_warnings": True,
-            "noplaylist": True,
-            "skip_download": True,
-            "socket_timeout": 15,
-            "retries": 2,
-            "cachedir": "/var/www/music-app/.cache/yt-dlp",
-        }
-        if node_path and os.path.exists(node_path):
-            ydl_opts["js_runtimes"] = {"node": {"path": node_path}}
-        cookie_path = os.getenv("YTDLP_COOKIES_FILE", "/var/www/music-app/data/cookies.txt")
-        if os.path.exists(cookie_path):
-            ydl_opts["cookiefile"] = cookie_path
-        proxy = os.getenv("YTDLP_PROXY") or getattr(settings, "UPSTREAM_PROXY", None)
-        if proxy:
-            ydl_opts["proxy"] = proxy
         url = f"https://www.youtube.com/watch?v={video_id}"
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl = self._get_ydl()
+        with self._ydl_lock:
             info = ydl.extract_info(url, download=False)
-            if not info:
-                raise ValueError("Could not extract stream info from YouTube")
+        if not info:
+            raise ValueError("Could not extract stream info from YouTube")
 
             stream_url = info.get("url")
             if not stream_url:

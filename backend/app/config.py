@@ -91,6 +91,17 @@ class Settings(BaseSettings):
     VOICE_LLM_MODEL: str = "gpt-4o-mini"
     VOICE_RATE_LIMIT_PER_MIN: int = 10
 
+    # Performance & Instant Playback
+    URL_REFRESH_AHEAD_RATIO: float = 0.8
+    URL_REFRESH_MAX_CONCURRENT: int = 1
+    URL_NEGATIVE_TTL_SECONDS: int = 30
+    HEAD_BYTES: int = 262144
+    HEAD_CACHE_MB: int = 32
+    HEAD_CACHE_TTL_SECONDS: int = 21600
+    PREFETCH_CONCURRENCY: int = 2
+    PREFETCH_MAX_PER_MIN: int = 30
+    PREFETCH_GLOBAL_MB_PER_DAY: int = 300
+
     @property
     def cors_origins_list(self) -> List[str]:
         if not self.CORS_ORIGINS:
@@ -121,6 +132,26 @@ class Settings(BaseSettings):
         if errors:
             raise ValueError("\n".join(errors))
 
+    def validate_perf_config(self) -> None:
+        errors = []
+        if not (0.1 <= self.URL_REFRESH_AHEAD_RATIO <= 0.99):
+            errors.append(f"URL_REFRESH_AHEAD_RATIO must be between 0.1 and 0.99 (found: {self.URL_REFRESH_AHEAD_RATIO}).")
+        for name in [
+            "URL_REFRESH_MAX_CONCURRENT",
+            "URL_NEGATIVE_TTL_SECONDS",
+            "HEAD_BYTES",
+            "HEAD_CACHE_MB",
+            "HEAD_CACHE_TTL_SECONDS",
+            "PREFETCH_CONCURRENCY",
+            "PREFETCH_MAX_PER_MIN",
+            "PREFETCH_GLOBAL_MB_PER_DAY",
+        ]:
+            val = getattr(self, name, None)
+            if not isinstance(val, int) or isinstance(val, bool) or val <= 0:
+                errors.append(f"{name} must be a positive integer (found: {val}).")
+        if errors:
+            raise ValueError("\n".join(errors))
+
     def validate_production_config(self) -> None:
         errors = []
         if not self.APP_JWT_SECRET or len(self.APP_JWT_SECRET) < 32:
@@ -134,6 +165,10 @@ class Settings(BaseSettings):
                     errors.append("In production mode, CORS_ORIGINS must not contain wildcard '*'.")
         try:
             self.validate_download_config()
+        except ValueError as e:
+            errors.append(str(e))
+        try:
+            self.validate_perf_config()
         except ValueError as e:
             errors.append(str(e))
         if errors:
