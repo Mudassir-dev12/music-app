@@ -23,6 +23,8 @@ class AudioUrlService {
 
   final TicketCache _ticketCache;
 
+  TicketCache get ticketCache => _ticketCache;
+
   /// Returns the absolute streaming URL for [videoId].
   Future<String> urlFor(String videoId) => _ticketCache.getUrl(videoId);
 

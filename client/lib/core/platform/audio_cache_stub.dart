@@ -3,12 +3,10 @@ import 'package:just_audio/just_audio.dart';
 import 'audio_cache_interface.dart';
 
 class DefaultAudioCache implements AudioCache {
-  final String? _customBaseDir;
   int _capBytes;
 
   DefaultAudioCache({String? customBaseDir, int? defaultCapBytes})
-      : _customBaseDir = customBaseDir,
-        _capBytes = defaultCapBytes ?? 500 * 1024 * 1024;
+      : _capBytes = defaultCapBytes ?? 500 * 1024 * 1024;
 
   @override
   bool get isSupported => false;

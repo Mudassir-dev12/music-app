@@ -1,13 +1,10 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:melodia/api/api_client.dart';
 import 'package:melodia/api/models.dart';
 import 'package:melodia/api/music_api.dart';
-import 'package:melodia/core/connectivity/connectivity_controller.dart';
 import 'package:melodia/downloads/offline_mode.dart';
 import 'package:melodia/player/prefetch_coordinator.dart';
-import 'package:melodia/player/ticket_cache.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FakeMusicApiForPrefetch extends MusicApi {

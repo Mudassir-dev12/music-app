@@ -70,6 +70,9 @@ class TicketCache {
     return null;
   }
 
+  /// Returns true if a valid, unexpired ticket URL exists in cache.
+  bool hasValidTicket(String videoId) => getCachedUrl(videoId) != null;
+
   /// Manually inserts or updates a ticket in memory (e.g. from prefetch).
   void put(String videoId, AudioTicket ticket) {
     final expiry = DateTime.now().add(Duration(seconds: ticket.expiresIn));
@@ -175,3 +178,4 @@ class TicketCache {
     }
   }
 }
+

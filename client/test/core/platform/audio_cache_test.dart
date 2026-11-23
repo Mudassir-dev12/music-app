@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:melodia/core/platform/audio_cache.dart';
-import 'package:melodia/core/platform/audio_cache_stub.dart' show DefaultAudioCache;
+import 'package:melodia/core/platform/audio_cache_stub.dart' as stub_lib;
 
 void main() {
   group('NativeAudioCache', () {
@@ -47,7 +47,7 @@ void main() {
         await file.writeAsBytes(List.filled(400, i));
         await cache.markFullyCached('track$i');
         // stagger access time
-        await Future.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
         await cache.recordAccess('track$i');
       }
 
@@ -67,7 +67,7 @@ void main() {
         final file = File(path);
         await file.writeAsBytes(List.filled(400, i));
         await cache.markFullyCached('track$i');
-        await Future.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
         await cache.recordAccess('track$i');
       }
 
@@ -114,7 +114,7 @@ void main() {
 
   group('DefaultAudioCache (stub / web)', () {
     test('stub reports unsupported and safe no-ops', () async {
-      final stub = DefaultAudioCache();
+      final stub = stub_lib.DefaultAudioCache();
       expect(stub.isSupported, isFalse);
       expect(await stub.isFullyCached('any'), isFalse);
       expect(await stub.getCachedFilePath('any'), isNull);

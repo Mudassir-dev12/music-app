@@ -196,11 +196,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           _isLoading = false;
         });
         final vids = <String>[];
-        if (grouped.topResult?.type == 'song' && grouped.topResult?.videoId != null) {
+        if (grouped.topResult?.type == MediaItemType.song && grouped.topResult?.videoId != null) {
           vids.add(grouped.topResult!.videoId!);
         }
-        for (final item in grouped.songs) {
-          if (item.videoId != null) vids.add(item.videoId!);
+        for (final section in grouped.sections) {
+          for (final item in section.items) {
+            if (item.videoId != null) vids.add(item.videoId!);
+          }
         }
         if (vids.isNotEmpty) {
           ref.read(prefetchCoordinatorProvider).onSearchResults(vids);

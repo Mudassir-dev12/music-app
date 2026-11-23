@@ -2,17 +2,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:melodia/api/models.dart';
 import 'package:melodia/api/music_api.dart';
 import 'package:melodia/player/audio_url_service.dart';
+import 'package:melodia/player/ticket_cache.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockMusicApi extends Mock implements MusicApi {}
 
 void main() {
   late MockMusicApi mockMusicApi;
+  late TicketCache ticketCache;
   late AudioUrlService service;
 
   setUp(() {
     mockMusicApi = MockMusicApi();
-    service = AudioUrlService(mockMusicApi);
+    ticketCache = TicketCache(mockMusicApi);
+    service = AudioUrlService(ticketCache);
   });
 
   test('urlFor fetches ticket from backend and returns absolute URL', () async {

@@ -8,14 +8,83 @@ import '../../core/connectivity/connectivity_controller.dart';
 import '../../data/user_data_providers.dart';
 import '../../downloads/download_repository.dart';
 import '../../downloads/offline_mode.dart';
+import '../../player/audio_cache_provider.dart';
 import '../../player/autoplay_controller.dart';
+import '../../player/prefetch_coordinator.dart';
 import '../../theme/theme_controller.dart';
 import '../../theme/tokens.dart';
 import '../voice/voice_settings_section.dart';
+import '../widgets/diagnostics_sheet.dart';
 import '../widgets/server_url_dialog.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  int _versionTapCount = 0;
+
+  Future<void> _showClearAudioCacheDialog(BuildContext context, int usedBytes) async {
+    final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+    final sizeFormatted = _formatSize(usedBytes);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: tokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(MelodiaTokens.radiusSheet),
+        ),
+        title: Text(
+          'Clear Audio Cache?',
+          style: MelodiaTokens.title3.copyWith(color: tokens.text),
+        ),
+        content: Text(
+          'This will free up $sizeFormatted of cached audio. Pinned tracks and downloaded songs are kept safe.',
+          style: MelodiaTokens.body.copyWith(color: tokens.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: Text(
+              'Cancel',
+              style: MelodiaTokens.subhead.copyWith(color: tokens.textSecondary),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: tokens.destructive,
+            ),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: Text(
+              'Clear Cache',
+              style: MelodiaTokens.subhead.copyWith(color: tokens.text),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final cache = ref.read(audioCacheProvider);
+      await cache.clearCache();
+      if (context.mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Audio cache cleared',
+              style: MelodiaTokens.footnote.copyWith(color: tokens.text),
+            ),
+            backgroundColor: tokens.surface2,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _showClearHistoryDialog(BuildContext context, WidgetRef ref) async {
     final tokens = Theme.of(context).extension<MelodiaTokens>()!;
@@ -195,7 +264,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<MelodiaTokens>()!;
     final themeAsync = ref.watch(themeControllerProvider);
     final currentTheme = themeAsync.valueOrNull ?? ThemeMode.system;
@@ -285,21 +354,134 @@ class SettingsScreen extends ConsumerWidget {
             color: tokens.surface,
             borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
             clipBehavior: Clip.antiAlias,
-            child: SwitchListTile.adaptive(
-              secondary: Icon(Icons.autorenew_rounded, color: tokens.accent),
-              title: Text(
-                'Autoplay Similar Songs',
-                style: MelodiaTokens.headline.copyWith(color: tokens.text),
-              ),
-              subtitle: Text(
-                'Keep playing similar music when your queue ends',
-                style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
-              ),
-              value: ref.watch(autoplayEnabledProvider),
-              activeTrackColor: tokens.accent,
-              onChanged: (val) {
-                ref.read(autoplayEnabledProvider.notifier).setAutoplay(val);
-              },
+            child: Column(
+              children: [
+                SwitchListTile.adaptive(
+                  secondary: Icon(Icons.autorenew_rounded, color: tokens.accent),
+                  title: Text(
+                    'Autoplay Similar Songs',
+                    style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                  ),
+                  subtitle: Text(
+                    'Keep playing similar music when your queue ends',
+                    style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+                  ),
+                  value: ref.watch(autoplayEnabledProvider),
+                  activeTrackColor: tokens.accent,
+                  onChanged: (val) {
+                    ref.read(autoplayEnabledProvider.notifier).setAutoplay(val);
+                  },
+                ),
+                Divider(color: tokens.separator, height: 0.5, indent: 16),
+                Padding(
+                  padding: const EdgeInsets.all(MelodiaTokens.spacingMd),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.bolt_rounded, color: tokens.accent),
+                          const SizedBox(width: MelodiaTokens.spacingSm),
+                          Text(
+                            'Smart Prefetch',
+                            style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: MelodiaTokens.spacingXs),
+                      Text(
+                        'Pre-warm upcoming search, queue, and album tracks for instant playback',
+                        style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+                      ),
+                      const SizedBox(height: MelodiaTokens.spacingSm),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<SmartPrefetchMode>(
+                          segments: const [
+                            ButtonSegment(
+                              value: SmartPrefetchMode.off,
+                              label: Text('Off'),
+                            ),
+                            ButtonSegment(
+                              value: SmartPrefetchMode.light,
+                              label: Text('Light'),
+                            ),
+                            ButtonSegment(
+                              value: SmartPrefetchMode.full,
+                              label: Text('Full'),
+                            ),
+                          ],
+                          selected: {ref.watch(smartPrefetchModeProvider)},
+                          onSelectionChanged: (selected) {
+                            ref
+                                .read(smartPrefetchModeProvider.notifier)
+                                .setMode(selected.first);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(color: tokens.separator, height: 0.5, indent: 16),
+                FutureBuilder<List<int>>(
+                  future: Future.wait([
+                    ref.watch(audioCacheProvider).totalBytesUsed(),
+                    ref.watch(audioCacheProvider).getCapBytes(),
+                  ]),
+                  builder: (context, snapshot) {
+                    final used = snapshot.data != null ? snapshot.data![0] : 0;
+                    final cap = snapshot.data != null ? snapshot.data![1] : 500 * 1024 * 1024;
+                    final capMb = (cap / (1024 * 1024)).round();
+
+                    return Column(
+                      children: [
+                        ListTile(
+                          leading: Icon(Icons.sd_storage_rounded, color: tokens.accent),
+                          title: Text(
+                            'Audio Cache',
+                            style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                          ),
+                          subtitle: Text(
+                            'Used: ${_formatSize(used)} (Cap: ${_formatSize(cap)})\nNot counted as downloaded songs',
+                            style: MelodiaTokens.caption.copyWith(color: tokens.textSecondary),
+                          ),
+                          trailing: DropdownButton<int>(
+                            value: [100, 250, 500, 1024, 2048].contains(capMb) ? capMb : 500,
+                            underline: const SizedBox.shrink(),
+                            dropdownColor: tokens.surface,
+                            items: const [
+                              DropdownMenuItem(value: 100, child: Text('100 MB')),
+                              DropdownMenuItem(value: 250, child: Text('250 MB')),
+                              DropdownMenuItem(value: 500, child: Text('500 MB')),
+                              DropdownMenuItem(value: 1024, child: Text('1 GB')),
+                              DropdownMenuItem(value: 2048, child: Text('2 GB')),
+                            ],
+                            onChanged: (newMb) {
+                              if (newMb != null) {
+                                ref.read(audioCacheProvider).setCapBytes(newMb * 1024 * 1024);
+                                setState(() {});
+                              }
+                            },
+                          ),
+                        ),
+                        if (used > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                style: TextButton.styleFrom(foregroundColor: tokens.destructive),
+                                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                label: const Text('Clear audio cache'),
+                                onPressed: () => _showClearAudioCacheDialog(context, used),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: MelodiaTokens.spacingXl),
@@ -571,7 +753,35 @@ class SettingsScreen extends ConsumerWidget {
                       color: tokens.textSecondary,
                     ),
                   ),
+                  onTap: () {
+                    setState(() {
+                      _versionTapCount++;
+                    });
+                    if (_versionTapCount >= 7 || kDebugMode) {
+                      DiagnosticsSheet.show(context);
+                    }
+                  },
                 ),
+                if (kDebugMode || _versionTapCount >= 7) ...[
+                  Divider(
+                    color: tokens.separator,
+                    height: 0.5,
+                    indent: 16,
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.analytics_outlined, color: tokens.accent),
+                    title: Text(
+                      'Playback Diagnostics',
+                      style: MelodiaTokens.headline.copyWith(color: tokens.text),
+                    ),
+                    subtitle: Text(
+                      'Inspect latency, cache hit rate, and prefetch metrics',
+                      style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+                    ),
+                    trailing: Icon(Icons.chevron_right_rounded, color: tokens.textSecondary),
+                    onTap: () => DiagnosticsSheet.show(context),
+                  ),
+                ],
                 Divider(
                   color: tokens.separator,
                   height: 0.5,

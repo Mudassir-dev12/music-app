@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/models.dart';
 import '../api/music_api.dart';
 import '../core/connectivity/connectivity_controller.dart';
 import '../downloads/offline_mode.dart';
@@ -87,6 +87,22 @@ class PrefetchCoordinator {
 
   MusicApi get _musicApi => _ref.read(musicApiProvider);
   TicketCache get _ticketCache => _ref.read(ticketCacheProvider);
+  PrefetchStats get stats => _ref.read(prefetchStatsProvider);
+
+  /// Trigger: Warm up the next tracks in queue.
+  void warmUpQueue(List<Track> queue, int currentIndex) {
+    if (queue.isEmpty || currentIndex < 0) return;
+    final nextIds = <String>[];
+    if (currentIndex + 1 < queue.length) {
+      nextIds.add(queue[currentIndex + 1].videoId);
+    }
+    if (currentIndex + 2 < queue.length) {
+      nextIds.add(queue[currentIndex + 2].videoId);
+    }
+    if (nextIds.isNotEmpty) {
+      onQueueTracks(nextIds);
+    }
+  }
 
   bool get _canPrefetch {
     final mode = _ref.read(smartPrefetchModeProvider);
@@ -221,3 +237,4 @@ class PrefetchCoordinator {
     }
   }
 }
+
