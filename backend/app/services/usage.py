@@ -17,6 +17,7 @@ class BandwidthGuard:
     def __init__(self):
         self._unflushed: dict[Tuple[str, datetime.date], int] = defaultdict(int)
         self._unflushed_downloads: dict[Tuple[str, datetime.date], int] = defaultdict(int)
+        self._prefetch_daily_bytes: dict[datetime.date, int] = defaultdict(int)
         self._lock = asyncio.Lock()
         self._warned_80_percent: bool = False
         self._flush_task: asyncio.Task | None = None
@@ -50,6 +51,23 @@ class BandwidthGuard:
         today = datetime.datetime.now(datetime.timezone.utc).date()
         async with self._lock:
             self._unflushed_downloads[(user_id, today)] += byte_count
+
+    async def record_prefetch_bytes(self, byte_count: int) -> None:
+        if byte_count <= 0:
+            return
+        today = datetime.datetime.now(datetime.timezone.utc).date()
+        async with self._lock:
+            self._prefetch_daily_bytes[today] += byte_count
+
+    async def get_prefetch_today_bytes(self) -> int:
+        today = datetime.datetime.now(datetime.timezone.utc).date()
+        async with self._lock:
+            return self._prefetch_daily_bytes.get(today, 0)
+
+    async def is_prefetch_daily_budget_exceeded(self) -> bool:
+        limit = settings.PREFETCH_GLOBAL_MB_PER_DAY * 1024 * 1024
+        today_bytes = await self.get_prefetch_today_bytes()
+        return today_bytes >= limit
 
     async def flush(self) -> None:
         async with self._lock:

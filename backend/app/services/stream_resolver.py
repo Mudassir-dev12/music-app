@@ -32,6 +32,11 @@ class StreamResolver:
         self._refreshing: Set[str] = set()
 
     async def invalidate(self, video_id: str) -> None:
+        try:
+            from app.services.head_cache import head_cache
+            head_cache.remove(video_id)
+        except Exception:
+            pass
         cache_key = f"stream:{video_id}"
         neg_key = f"stream:neg:{video_id}"
         await self.cache.delete(cache_key)

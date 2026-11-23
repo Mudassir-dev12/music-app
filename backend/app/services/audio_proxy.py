@@ -9,6 +9,7 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.services.audio_cache import audio_cache
+from app.services.head_cache import head_cache
 from app.services.stream_resolver import StreamResolver
 from app.services.usage import bandwidth_guard
 from app.sources.models import ResolvedStream
@@ -23,6 +24,16 @@ class AudioProxy:
         self._download_semaphore = asyncio.Semaphore(settings.MAX_CONCURRENT_DOWNLOADS_GLOBAL)
         self._user_downloads: dict[str, int] = defaultdict(int)
         self._download_lock = asyncio.Lock()
+        proxy_url = getattr(settings, "UPSTREAM_PROXY", None) or None
+        self._client = httpx.AsyncClient(
+            proxy=proxy_url,
+            timeout=30.0,
+            follow_redirects=True,
+            limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
+        )
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
 
     def _acquire_semaphore_nonblocking(self) -> None:
         if self._semaphore.locked():
@@ -92,7 +103,7 @@ class AudioProxy:
         video_id: str,
         range_header: Optional[str] = None,
     ) -> Response:
-        # Check disk cache first
+        # 1. Check disk cache first
         if audio_cache.is_cached(video_id):
             total_size = audio_cache.get_size(video_id)
             headers = {
@@ -101,6 +112,8 @@ class AudioProxy:
                 "Referrer-Policy": "no-referrer",
                 "Content-Type": "audio/mp4",
                 "X-Audio-Cache": "HIT",
+                "X-Cache": "disk",
+                "X-Accel-Buffering": "no",
             }
             if range_header:
                 start, end, length = self._parse_range(range_header, total_size)
@@ -111,40 +124,61 @@ class AudioProxy:
                 headers["Content-Length"] = str(total_size)
                 return Response(status_code=200, headers=headers)
 
-        stream_info = await self.resolver.get_stream(video_id)
-
-        proxy_url = getattr(settings, "UPSTREAM_PROXY", None) or None
-        async with httpx.AsyncClient(proxy=proxy_url, timeout=10.0, follow_redirects=True) as client:
-            resp = await self._fetch_upstream(
-                client, stream_info, range_header, method="HEAD"
-            )
-            # If HEAD fails or gives 403, retry once
-            if resp.status_code in (403, 404, 410):
-                await resp.aclose()
-                await self.resolver.invalidate(video_id)
-                stream_info = await self.resolver.get_stream(video_id)
-                resp = await self._fetch_upstream(
-                    client, stream_info, range_header, method="HEAD"
-                )
-
+        # 2. Check head cache
+        head_entry = head_cache.get(video_id)
+        if head_entry:
+            total_size = head_entry.total_size
             headers = {
                 "Accept-Ranges": "bytes",
                 "Cache-Control": "private, no-store",
                 "Referrer-Policy": "no-referrer",
+                "Content-Type": head_entry.content_type,
+                "X-Audio-Cache": "HIT",
+                "X-Cache": "head",
+                "X-Accel-Buffering": "no",
             }
-            if "content-type" in resp.headers:
-                headers["Content-Type"] = resp.headers["content-type"]
-            elif stream_info.content_type:
-                headers["Content-Type"] = stream_info.content_type
+            if range_header:
+                start, end, length = self._parse_range(range_header, total_size)
+                headers["Content-Length"] = str(length)
+                headers["Content-Range"] = f"bytes {start}-{end}/{total_size}"
+                return Response(status_code=206, headers=headers)
+            else:
+                headers["Content-Length"] = str(total_size)
+                return Response(status_code=200, headers=headers)
 
-            if "content-length" in resp.headers:
-                headers["Content-Length"] = resp.headers["content-length"]
-            if "content-range" in resp.headers:
-                headers["Content-Range"] = resp.headers["content-range"]
-
-            status_code = resp.status_code if resp.status_code in (200, 206) else 200
+        # 3. Fallback to upstream HEAD
+        stream_info = await self.resolver.get_stream(video_id)
+        resp = await self._fetch_upstream(
+            self._client, stream_info, range_header, method="HEAD"
+        )
+        if resp.status_code in (403, 404, 410):
             await resp.aclose()
-            return Response(status_code=status_code, headers=headers)
+            await self.resolver.invalidate(video_id)
+            stream_info = await self.resolver.get_stream(video_id)
+            resp = await self._fetch_upstream(
+                self._client, stream_info, range_header, method="HEAD"
+            )
+
+        headers = {
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "private, no-store",
+            "Referrer-Policy": "no-referrer",
+            "X-Cache": "miss",
+            "X-Accel-Buffering": "no",
+        }
+        if "content-type" in resp.headers:
+            headers["Content-Type"] = resp.headers["content-type"]
+        elif stream_info.content_type:
+            headers["Content-Type"] = stream_info.content_type
+
+        if "content-length" in resp.headers:
+            headers["Content-Length"] = resp.headers["content-length"]
+        if "content-range" in resp.headers:
+            headers["Content-Range"] = resp.headers["content-range"]
+
+        status_code = resp.status_code if resp.status_code in (200, 206) else 200
+        await resp.aclose()
+        return Response(status_code=status_code, headers=headers)
 
     async def proxy_stream(
         self,
@@ -160,19 +194,15 @@ class AudioProxy:
         download_slot_acquired = False
 
         if is_download:
-            # 1. Download Bandwidth check
             await bandwidth_guard.check_download_limits(user_id, db)
-            # 2. Download Concurrency check
             await self._acquire_download_slot(user_id)
             download_slot_acquired = True
         else:
-            # 1. Bandwidth check
             await bandwidth_guard.check_limits(user_id, db)
-            # 2. Concurrency check (non-blocking)
             self._acquire_semaphore_nonblocking()
             semaphore_acquired = True
 
-        # 3. Check Disk Cache First (Instant SSD Delivery)
+        # 1. Check Disk Cache First
         if audio_cache.is_cached(video_id):
             total_size = audio_cache.get_size(video_id)
             if is_download and total_size > settings.MAX_DOWNLOAD_TRACK_MB * 1024 * 1024:
@@ -192,6 +222,9 @@ class AudioProxy:
                 "Content-Type": "audio/mp4",
                 "Content-Length": str(length),
                 "X-Audio-Cache": "HIT",
+                "X-Cache": "disk",
+                "X-Accel-Buffering": "no",
+                "Server-Timing": f"disk;dur={((time.monotonic() - start_time)*1000):.1f}",
             }
             if range_header:
                 res_headers["Content-Range"] = f"bytes {start}-{end}/{total_size}"
@@ -205,10 +238,6 @@ class AudioProxy:
                 finally:
                     if is_download:
                         await self._release_download_slot(user_id)
-                        duration = time.monotonic() - start_time
-                        logger.info(
-                            f"Download finished: video_id={video_id} bytes={bytes_sent} duration={duration:.2f}s status={status_code}"
-                        )
                         if bytes_sent > 0:
                             await bandwidth_guard.record_bytes(user_id, bytes_sent)
                             await bandwidth_guard.record_download_bytes(user_id, bytes_sent)
@@ -223,44 +252,114 @@ class AudioProxy:
                 headers=res_headers,
             )
 
-        # 4. Fallback to Upstream Resolution & Streaming
-        proxy_url = getattr(settings, "UPSTREAM_PROXY", None) or None
-        client = httpx.AsyncClient(proxy=proxy_url, timeout=30.0, follow_redirects=True)
-        upstream_resp: Optional[httpx.Response] = None
+        # 2. Check Head Cache (Instant First Bytes + Stitched Stream)
+        head_entry = head_cache.get(video_id) if not is_download else None
+        can_use_head = (
+            head_entry is not None
+            and (range_header is None or range_header.startswith("bytes=0-"))
+        )
 
-        try:
-            # 5. Resolve stream
-            stream_info = await self.resolver.get_stream(video_id)
+        if can_use_head and head_entry:
+            total_size = head_entry.total_size
+            start, end, length = self._parse_range(range_header, total_size)
+            head_len = min(len(head_entry.head_bytes), length)
+            head_slice = head_entry.head_bytes[:head_len]
 
-            # 6. Request upstream
-            upstream_resp = await self._fetch_upstream(
-                client, stream_info, range_header, method="GET"
+            status_code = 206 if range_header else 200
+            res_headers = {
+                "Accept-Ranges": "bytes",
+                "Cache-Control": "private, no-store",
+                "Referrer-Policy": "no-referrer",
+                "Content-Type": head_entry.content_type,
+                "Content-Length": str(length),
+                "X-Audio-Cache": "HIT",
+                "X-Cache": "head",
+                "X-Accel-Buffering": "no",
+                "Server-Timing": f"head;dur={((time.monotonic() - start_time)*1000):.1f}",
+            }
+            if range_header:
+                res_headers["Content-Range"] = f"bytes {start}-{end}/{total_size}"
+
+            async def stitched_content_iterator() -> AsyncGenerator[bytes, None]:
+                bytes_sent = 0
+                upstream_resp_stitched: Optional[httpx.Response] = None
+                try:
+                    # Send head bytes immediately
+                    bytes_sent += len(head_slice)
+                    yield head_slice
+
+                    # If more bytes needed, stream remainder from upstream
+                    if head_len < length:
+                        remainder_start = start + head_len
+                        remainder_range = f"bytes={remainder_start}-{end}"
+                        stream_info = await self.resolver.get_stream(video_id)
+                        upstream_resp_stitched = await self._fetch_upstream(
+                            self._client, stream_info, remainder_range, method="GET"
+                        )
+                        if upstream_resp_stitched.status_code in (403, 404, 410):
+                            await upstream_resp_stitched.aclose()
+                            await self.resolver.invalidate(video_id)
+                            stream_info = await self.resolver.get_stream(video_id)
+                            upstream_resp_stitched = await self._fetch_upstream(
+                                self._client, stream_info, remainder_range, method="GET"
+                            )
+
+                        if upstream_resp_stitched.status_code in (200, 206):
+                            async for chunk in upstream_resp_stitched.aiter_bytes(chunk_size=65536):
+                                bytes_sent += len(chunk)
+                                yield chunk
+                        else:
+                            logger.warning(
+                                f"Stitched upstream remainder failed status {upstream_resp_stitched.status_code} for {video_id}"
+                            )
+                except Exception as ex:
+                    logger.warning(f"Error in stitched audio iterator for {video_id}: {ex}")
+                finally:
+                    if upstream_resp_stitched:
+                        await upstream_resp_stitched.aclose()
+                    self._release_semaphore()
+                    if bytes_sent > 0:
+                        await bandwidth_guard.record_bytes(user_id, bytes_sent)
+
+            return StreamingResponse(
+                stitched_content_iterator(),
+                status_code=status_code,
+                headers=res_headers,
             )
 
-            # 7. Handle upstream 403/404/410 expiry retry
+        # 3. Fallback to Upstream Resolution & Streaming
+        upstream_resp: Optional[httpx.Response] = None
+        try:
+            is_url_cached = await self.resolver.is_warm(video_id)
+            t_res = time.monotonic()
+            stream_info = await self.resolver.get_stream(video_id)
+            res_dur = (time.monotonic() - t_res) * 1000
+
+            t_conn = time.monotonic()
+            upstream_resp = await self._fetch_upstream(
+                self._client, stream_info, range_header, method="GET"
+            )
+
+            # Handle upstream 403/404/410 expiry retry
             if upstream_resp.status_code in (403, 404, 410):
-                logger.info(
-                    f"Upstream returned {upstream_resp.status_code} for {video_id}, re-resolving stream..."
-                )
                 await upstream_resp.aclose()
+                head_cache.remove(video_id)
                 await self.resolver.invalidate(video_id)
                 stream_info = await self.resolver.get_stream(video_id)
                 upstream_resp = await self._fetch_upstream(
-                    client, stream_info, range_header, method="GET"
+                    self._client, stream_info, range_header, method="GET"
                 )
+
+            conn_dur = (time.monotonic() - t_conn) * 1000
 
             if upstream_resp.status_code not in (200, 206):
                 await upstream_resp.aclose()
-                await client.aclose()
                 if is_download:
                     await self._release_download_slot(user_id)
                     download_slot_acquired = False
                 else:
                     self._release_semaphore()
                     semaphore_acquired = False
-                logger.error(
-                    f"Upstream stream failed with status {upstream_resp.status_code} for {video_id}"
-                )
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail="Upstream audio provider returned an error.",
@@ -282,7 +381,6 @@ class AudioProxy:
                         pass
                 if upstream_total_size and upstream_total_size > settings.MAX_DOWNLOAD_TRACK_MB * 1024 * 1024:
                     await upstream_resp.aclose()
-                    await client.aclose()
                     await self._release_download_slot(user_id)
                     download_slot_acquired = False
                     raise HTTPException(
@@ -290,12 +388,16 @@ class AudioProxy:
                         detail="Audio file exceeds maximum download track size limit.",
                     )
 
-            # Filter response headers
+            # Response headers
+            cache_tag = "url" if is_url_cached else "miss"
             res_headers = {
                 "Accept-Ranges": "bytes",
                 "Cache-Control": "private, no-store",
                 "Referrer-Policy": "no-referrer",
                 "X-Audio-Cache": "MISS",
+                "X-Cache": cache_tag,
+                "X-Accel-Buffering": "no",
+                "Server-Timing": f"resolve;dur={res_dur:.1f}, connect;dur={conn_dur:.1f}",
             }
             if "content-type" in upstream_resp.headers:
                 res_headers["Content-Type"] = upstream_resp.headers["content-type"]
@@ -310,17 +412,39 @@ class AudioProxy:
             # Save to disk cache if streaming from start
             cache_file = None
             part_path = None
-            should_cache = (
+            should_cache_disk = (
                 range_header is None or range_header.startswith("bytes=0-")
             ) and upstream_resp.status_code in (200, 206)
 
-            if should_cache:
+            if should_cache_disk:
                 try:
                     part_path = audio_cache.get_part_path(video_id)
                     cache_file = open(part_path, "wb")
                 except Exception as ce:
                     logger.warning(f"Could not open cache file {part_path}: {ce}")
                     cache_file = None
+
+            # Collect head bytes to populate head_cache
+            head_buffer = bytearray()
+            should_tee_head = (
+                not is_download
+                and (range_header is None or range_header.startswith("bytes=0-"))
+            )
+
+            # Determine upstream total size
+            total_size_calc = None
+            if "content-range" in upstream_resp.headers:
+                try:
+                    total_size_calc = int(upstream_resp.headers["content-range"].split("/")[-1])
+                except Exception:
+                    pass
+            elif "content-length" in upstream_resp.headers and not range_header:
+                try:
+                    total_size_calc = int(upstream_resp.headers["content-length"])
+                except Exception:
+                    pass
+
+            upstream_etag = upstream_resp.headers.get("etag")
 
             async def content_iterator() -> AsyncGenerator[bytes, None]:
                 bytes_sent = 0
@@ -330,9 +454,26 @@ class AudioProxy:
                         bytes_sent += len(chunk)
                         if cache_file:
                             cache_file.write(chunk)
+                        if should_tee_head and len(head_buffer) < settings.HEAD_BYTES:
+                            needed = settings.HEAD_BYTES - len(head_buffer)
+                            head_buffer.extend(chunk[:needed])
                         yield chunk
                     stream_completed = True
                 finally:
+                    # Finalize head cache if we captured head bytes of a real audio file
+                    if should_tee_head and len(head_buffer) > 0 and total_size_calc and total_size_calc > 1024:
+                        try:
+                            head_cache.put(
+                                video_id=video_id,
+                                head_bytes=bytes(head_buffer),
+                                total_size=total_size_calc,
+                                content_type=res_headers.get("Content-Type", "audio/mp4"),
+                                etag=upstream_etag,
+                            )
+                        except Exception as e:
+                            logger.debug(f"Failed to populate head cache for {video_id}: {e}")
+
+                    # Finalize disk cache
                     if cache_file:
                         try:
                             cache_file.close()
@@ -344,9 +485,6 @@ class AudioProxy:
                             ):
                                 target_path = audio_cache.get_file_path(video_id)
                                 part_path.rename(target_path)
-                                logger.info(
-                                    f"Successfully cached audio on disk for {video_id} ({bytes_sent} bytes)"
-                                )
                                 audio_cache.prune_if_needed()
                             elif part_path and part_path.is_file():
                                 part_path.unlink()
@@ -354,13 +492,8 @@ class AudioProxy:
                             logger.warning(f"Error finalizing cache file for {video_id}: {e}")
 
                     await upstream_resp.aclose()
-                    await client.aclose()
                     if is_download:
                         await self._release_download_slot(user_id)
-                        duration = time.monotonic() - start_time
-                        logger.info(
-                            f"Download finished: video_id={video_id} bytes={bytes_sent} duration={duration:.2f}s status={upstream_resp.status_code}"
-                        )
                         if bytes_sent > 0:
                             await bandwidth_guard.record_bytes(user_id, bytes_sent)
                             await bandwidth_guard.record_download_bytes(user_id, bytes_sent)
@@ -378,7 +511,6 @@ class AudioProxy:
         except Exception:
             if upstream_resp:
                 await upstream_resp.aclose()
-            await client.aclose()
             if download_slot_acquired:
                 await self._release_download_slot(user_id)
             elif semaphore_acquired:
