@@ -141,3 +141,4 @@ async def test_prefetch_saturation_does_not_block_real_playback(resolver, mock_s
     assert elapsed < 0.25
 
     await asyncio.gather(*prefetch_tasks)
+

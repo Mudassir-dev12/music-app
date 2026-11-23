@@ -237,7 +237,9 @@ All `/me/*` routes require a valid Bearer access token (`Authorization: Bearer <
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/audio/{video_id}/ticket` | Issue audio ticket. Accepts optional body `{"purpose": "stream" \| "download"}` (default `stream`). Returns `url`, `expires_in`, `purpose`, and for downloads: `remaining_download_mb` and `max_track_mb`. |
-| `GET` | `/audio/{video_id}?t=...` | Stream or download audio bytes. When purpose is `download`, enforces `DAILY_DOWNLOAD_MB_PER_USER`, `MAX_DOWNLOAD_TRACK_MB` (413), and per-user/global download concurrency (429 with `Retry-After`). Supports `Range` resume. |
+| `POST` | `/audio/tickets` | Issue batch streaming tickets (up to 10 video IDs) in one request with coalescing. Returns `tickets: {<videoId>: {url, expires_in, purpose}}`. |
+| `POST` | `/audio/prefetch` | Speculative prefetch of stream URLs and head cache bytes (up to 5 video IDs). Returns `202 Accepted` with per-track status (`queued`, `warm`, `skipped`). Rate limited to protect bandwidth. |
+| `GET` | `/audio/{video_id}?t=...` | Stream or download audio bytes. Fast-path serves 256 KB container head from `AudioHeadCache` (< 50 ms TTFB) with stitched remainder streaming. Returns `Server-Timing`, `X-Cache` (`head`, `disk`, `url`, `miss`), and `X-Accel-Buffering: no`. Supports `Range` resume. |
 | `HEAD` | `/audio/{video_id}?t=...` | Audio metadata headers (`Content-Length`, `Accept-Ranges: bytes`). |
 | `GET` | `/me/downloads/limits` | Returns remaining daily download quota, per-track cap, and concurrency limits for settings and UI display. |
 

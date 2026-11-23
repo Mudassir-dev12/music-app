@@ -62,3 +62,4 @@ async def test_headers_and_logs_never_contain_upstream_url(client: AsyncClient):
     assert "ticket;dur=" in st_batch
     assert "http" not in st_batch
     assert "googlevideo" not in st_batch
+
