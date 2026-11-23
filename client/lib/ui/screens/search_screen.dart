@@ -12,6 +12,7 @@ import '../../api/models.dart';
 import '../../data/user_data_providers.dart';
 import '../../downloads/offline_mode.dart';
 import '../../player/player_controller.dart';
+import '../../player/prefetch_coordinator.dart';
 import '../../theme/tokens.dart';
 import '../voice/mic_button.dart';
 import '../widgets/busy_banner.dart';
@@ -194,6 +195,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           _groupedResults = grouped;
           _isLoading = false;
         });
+        final vids = <String>[];
+        if (grouped.topResult?.type == 'song' && grouped.topResult?.videoId != null) {
+          vids.add(grouped.topResult!.videoId!);
+        }
+        for (final item in grouped.songs) {
+          if (item.videoId != null) vids.add(item.videoId!);
+        }
+        if (vids.isNotEmpty) {
+          ref.read(prefetchCoordinatorProvider).onSearchResults(vids);
+        }
       } else if (filter == 'Songs') {
         final res = await discoveryApi.searchFilter(query, 'songs');
         if (!mounted) return;
@@ -201,6 +212,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           _songResults = res.results.map((m) => m.toTrack()).toList();
           _isLoading = false;
         });
+        final vids = _songResults.map((t) => t.videoId).toList();
+        if (vids.isNotEmpty) {
+          ref.read(prefetchCoordinatorProvider).onSearchResults(vids);
+        }
       } else {
         final filterKey = filter.toLowerCase();
         final res = await discoveryApi.searchFilter(query, filterKey);

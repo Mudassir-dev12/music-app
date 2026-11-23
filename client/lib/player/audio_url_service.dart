@@ -1,82 +1,37 @@
-/// Short-lived audio URL ticket caching service.
+/// Short-lived audio URL ticket caching service delegating to [TicketCache].
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../api/models.dart';
-import '../api/music_api.dart';
-import '../core/config.dart' as config;
+import 'ticket_cache.dart';
 
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
 final audioUrlServiceProvider = Provider<AudioUrlService>((ref) {
-  return AudioUrlService(ref.watch(musicApiProvider));
+  return AudioUrlService(ref.watch(ticketCacheProvider));
 });
-
-// ---------------------------------------------------------------------------
-// Cache entry
-// ---------------------------------------------------------------------------
-
-typedef _CacheEntry = ({String url, DateTime expiry});
 
 // ---------------------------------------------------------------------------
 // AudioUrlService
 // ---------------------------------------------------------------------------
 
-/// Fetches and caches audio stream URLs from the backend ticket endpoint.
-///
-/// A cached ticket is considered stale when it expires within [_staleness],
-/// so we always have a fresh URL ready before the stream starts.
+/// High-level facade for obtaining streaming URLs backed by [TicketCache].
 class AudioUrlService {
-  AudioUrlService(this._musicApi);
+  AudioUrlService(this._ticketCache);
 
-  final MusicApi _musicApi;
-
-  static const Duration _staleness = Duration(minutes: 5);
-
-  final Map<String, _CacheEntry> _cache = {};
-
-  // ---------------------------------------------------------------------------
-  // Public API
-  // ---------------------------------------------------------------------------
+  final TicketCache _ticketCache;
 
   /// Returns the absolute streaming URL for [videoId].
-  ///
-  /// Uses a cached ticket if still valid (more than [_staleness] from expiry).
-  /// Otherwise fetches a fresh ticket from the backend.
-  Future<String> urlFor(String videoId) async {
-    final cached = _cache[videoId];
-    if (cached != null &&
-        cached.expiry.isAfter(DateTime.now().add(_staleness))) {
-      return cached.url;
-    }
+  Future<String> urlFor(String videoId) => _ticketCache.getUrl(videoId);
 
-    final ticket = await _musicApi.getAudioTicket(videoId);
-    return _store(videoId, ticket);
-  }
+  /// Synchronously returns the cached URL if still valid, or null.
+  String? getCachedUrl(String videoId) => _ticketCache.getCachedUrl(videoId);
 
-  /// Clears the cached ticket for [videoId], forcing the next [urlFor] call
-  /// to fetch a fresh one.
-  void invalidate(String videoId) {
-    _cache.remove(videoId);
-  }
+  /// Clears the cached ticket for [videoId].
+  void invalidate(String videoId) => _ticketCache.invalidate(videoId);
 
   /// Clears all cached tickets.
-  void invalidateAll() {
-    _cache.clear();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Internal helpers
-  // ---------------------------------------------------------------------------
-
-  String _store(String videoId, AudioTicket ticket) {
-    final expiry =
-        DateTime.now().add(Duration(seconds: ticket.expiresIn));
-    final absoluteUrl = config.apiUrl + ticket.url;
-    _cache[videoId] = (url: absoluteUrl, expiry: expiry);
-    return absoluteUrl;
-  }
+  void invalidateAll() => _ticketCache.invalidateAll();
 }

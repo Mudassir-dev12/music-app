@@ -52,4 +52,38 @@ class MusicApi {
     final data = await _client.post('/audio/$videoId/ticket', body);
     return AudioTicket.fromJson(data as Map<String, dynamic>);
   }
+
+  /// Requests short-lived streaming or download tickets in batch for [videoIds] (up to 10).
+  Future<Map<String, AudioTicket>> getAudioTicketsBatch(
+    List<String> videoIds, {
+    String purpose = 'stream',
+  }) async {
+    if (videoIds.isEmpty) return {};
+    final data = await _client.post('/audio/tickets', {
+      'video_ids': videoIds,
+      'purpose': purpose,
+    });
+    if (data is! Map<String, dynamic>) return {};
+    return data.map(
+      (k, v) => MapEntry(k, AudioTicket.fromJson(v as Map<String, dynamic>)),
+    );
+  }
+
+  /// Requests background prefetching for [videoIds] (up to 5).
+  Future<Map<String, String>> prefetchAudio(
+    List<String> videoIds, {
+    bool head = true,
+  }) async {
+    if (videoIds.isEmpty) return {};
+    final data = await _client.post('/audio/prefetch', {
+      'video_ids': videoIds,
+      'head': head,
+    });
+    if (data is Map<String, dynamic> && data['statuses'] is Map<String, dynamic>) {
+      return (data['statuses'] as Map<String, dynamic>).map(
+        (k, v) => MapEntry(k, v.toString()),
+      );
+    }
+    return {};
+  }
 }
