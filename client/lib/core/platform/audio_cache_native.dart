@@ -172,8 +172,9 @@ class NativeAudioCache implements AudioCache {
   AudioSource createAudioSource(Uri uri, String videoId) {
     if (_cacheDir != null) {
       final file = File('${_cacheDir!.path}/$videoId.m4a');
-      // ignore: experimental_member_use
-      return LockCachingAudioSource(uri, cacheFile: file);
+      if (file.existsSync() && file.lengthSync() > 1024) {
+        return AudioSource.file(file.path);
+      }
     }
     return AudioSource.uri(uri);
   }

@@ -6,16 +6,16 @@ import 'package:just_audio/just_audio.dart';
 
 import '../api/models.dart';
 
-/// Buffering configuration named constants.
-/// - kMinBufferDuration: minimum audio buffered before playback continues (4s).
+/// Buffering configuration named constants for instant (<0.5s) playback feel:
+/// - kMinBufferDuration: minimum audio buffered before playback continues (500ms).
 /// - kMaxBufferDuration: player forward buffer cap (60s forward buffer to absorb drops).
-/// - kBufferForPlaybackDuration: playback starts after ~1s of audio is buffered for instant feel.
-/// - kBufferForPlaybackAfterRebufferDuration: after a network stall, wait for 3s to ride out network drops.
+/// - kBufferForPlaybackDuration: playback starts after 150ms of audio is buffered for instant response.
+/// - kBufferForPlaybackAfterRebufferDuration: after a network stall, wait for 400ms to resume.
 /// - kDarwinPreferredForwardBufferDuration: iOS preferred forward buffer duration (45s).
-const Duration kMinBufferDuration = Duration(seconds: 4);
+const Duration kMinBufferDuration = Duration(milliseconds: 500);
 const Duration kMaxBufferDuration = Duration(seconds: 60);
-const Duration kBufferForPlaybackDuration = Duration(milliseconds: 1000);
-const Duration kBufferForPlaybackAfterRebufferDuration = Duration(milliseconds: 3000);
+const Duration kBufferForPlaybackDuration = Duration(milliseconds: 150);
+const Duration kBufferForPlaybackAfterRebufferDuration = Duration(milliseconds: 400);
 const Duration kDarwinPreferredForwardBufferDuration = Duration(seconds: 45);
 
 /// Wraps [just_audio.AudioPlayer] as an [audio_service.BaseAudioHandler].
