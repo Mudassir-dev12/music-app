@@ -68,3 +68,4 @@ def test_audio_cache_pruning(temp_cache_dir):
     assert len(remaining) <= 2
     total_remaining_size = sum(f.stat().st_size for f in remaining)
     assert total_remaining_size <= 80
+

@@ -151,8 +151,7 @@ async def run_benchmark_live(
                 )
             login_resp = await client.post(
                 "/auth/login",
-                data={"username": email, "password": password},
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                json={"email": email, "password": password},
             )
             if login_resp.status_code != 200:
                 raise RuntimeError(f"Login failed: {login_resp.status_code} {login_resp.text}")
@@ -171,6 +170,7 @@ async def run_benchmark_live(
                     t0 = time.monotonic()
                     ticket_resp = await client.post(f"/audio/{vid}/ticket", headers=headers)
                     if ticket_resp.status_code != 200:
+                        print(f"Warning: Ticket failed for {vid}: {ticket_resp.status_code} {ticket_resp.text}")
                         continue
                     ticket_ms = (time.monotonic() - t0) * 1000.0
                     audio_url = ticket_resp.json()["url"]
