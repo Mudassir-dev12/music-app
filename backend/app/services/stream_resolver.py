@@ -159,6 +159,11 @@ class StreamResolver:
         # Leader executes resolution
         try:
             resolved = await self._resolve_with_retry(video_id)
+            if not resolved:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Failed to resolve audio stream from upstream provider.",
+                )
             # Cache the result with timestamp
             data = resolved.model_dump()
             data["_cached_at"] = time.time()

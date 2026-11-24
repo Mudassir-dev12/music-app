@@ -8,6 +8,7 @@ import anyio
 from fastapi import HTTPException, status
 import yt_dlp
 from ytmusicapi import YTMusic
+from app.config import settings
 from app.sources.base import MusicSource
 from app.sources.models import Artist, ResolvedStream, SearchResponse, Track
 
@@ -192,25 +193,25 @@ class YTMusicSource(MusicSource):
         if not info:
             raise ValueError("Could not extract stream info from YouTube")
 
-            stream_url = info.get("url")
-            if not stream_url:
-                raise ValueError("No stream URL in extracted info")
+        stream_url = info.get("url")
+        if not stream_url:
+            raise ValueError("No stream URL in extracted info")
 
-            http_headers = info.get("http_headers", {})
-            ext = info.get("ext", "m4a")
-            acodec = info.get("acodec", "")
+        http_headers = info.get("http_headers", {})
+        ext = info.get("ext", "m4a")
+        acodec = info.get("acodec", "")
 
-            content_type = "audio/mp4"
-            if "webm" in ext or "opus" in acodec:
-                content_type = "audio/webm"
-            elif "mp3" in ext or "mp3" in acodec:
-                content_type = "audio/mpeg"
+        content_type = "audio/mp4"
+        if "webm" in ext or "opus" in acodec:
+            content_type = "audio/webm"
+        elif "mp3" in ext or "mp3" in acodec:
+            content_type = "audio/mpeg"
 
-            return ResolvedStream(
-                url=stream_url,
-                headers=http_headers,
-                content_type=content_type,
-            )
+        return ResolvedStream(
+            url=stream_url,
+            headers=http_headers,
+            content_type=content_type,
+        )
 
     async def search(self, query: str, filter_type: str, limit: int) -> SearchResponse:
         if filter_type != "songs":
