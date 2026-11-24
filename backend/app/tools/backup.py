@@ -29,7 +29,12 @@ def run_backup(keep: int = 7) -> str:
         return ""
 
     # 2. Ensure backups directory exists
-    backup_dir = "./backups"
+    backup_dir = os.environ.get("BACKUP_DIR")
+    if not backup_dir:
+        if os.path.exists("../backups") or os.path.exists("../data"):
+            backup_dir = os.path.abspath("../backups")
+        else:
+            backup_dir = "./backups"
     os.makedirs(backup_dir, exist_ok=True)
     try:
         os.chmod(backup_dir, 0o700)
