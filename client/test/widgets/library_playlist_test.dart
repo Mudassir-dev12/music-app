@@ -133,8 +133,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Liked Songs'), findsWidgets);
-    expect(find.text('Play'), findsOneWidget);
-    expect(find.text('Shuffle'), findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.shuffle_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.share_outlined), findsOneWidget);
     expect(find.text('My Favorite Song'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
   });

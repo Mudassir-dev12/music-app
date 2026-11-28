@@ -7,10 +7,10 @@ import 'package:melodia/player/queue.dart' as q;
 void main() {
   group('Buffering Named Constants', () {
     test('named constants have the configured values', () {
-      expect(kMinBufferDuration, equals(const Duration(seconds: 4)));
+      expect(kMinBufferDuration, equals(const Duration(milliseconds: 500)));
       expect(kMaxBufferDuration, equals(const Duration(seconds: 60)));
-      expect(kBufferForPlaybackDuration, equals(const Duration(milliseconds: 1000)));
-      expect(kBufferForPlaybackAfterRebufferDuration, equals(const Duration(milliseconds: 3000)));
+      expect(kBufferForPlaybackDuration, equals(const Duration(milliseconds: 150)));
+      expect(kBufferForPlaybackAfterRebufferDuration, equals(const Duration(milliseconds: 400)));
       expect(kDarwinPreferredForwardBufferDuration, equals(const Duration(seconds: 45)));
     });
   });
