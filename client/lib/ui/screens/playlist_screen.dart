@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -191,13 +192,43 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     descCtrl.dispose();
   }
 
-  void _playAll(List<Track> tracks, {bool shuffle = false}) {
+  bool _isPlaylistActive(List<Track> tracks) {
+    final currentVid = ref.read(playerControllerProvider).queue.currentTrack?.videoId;
+    if (currentVid == null) return false;
+    return tracks.any((t) => t.videoId == currentVid);
+  }
+
+  void _onPlayPausePressed(List<Track> tracks) {
     if (tracks.isEmpty) return;
-    // Play loaded tracks; if playlist has more pages, remaining can load on demand
-    ref.read(playerControllerProvider.notifier).playList(tracks, 0);
-    if (shuffle) {
-      ref.read(playerControllerProvider.notifier).toggleShuffle();
+    final controller = ref.read(playerControllerProvider.notifier);
+    final playerState = ref.read(playerControllerProvider);
+
+    if (_isPlaylistActive(tracks)) {
+      if (playerState.isPlaying) {
+        controller.pause();
+      } else {
+        controller.resume();
+      }
+      return;
     }
+
+    final isShuffle = playerState.queue.shuffle;
+    final startIdx = isShuffle ? Random().nextInt(tracks.length) : 0;
+    controller.playList(tracks, startIdx);
+  }
+
+  void _onShufflePressed(List<Track> tracks) {
+    if (tracks.isEmpty) return;
+    final controller = ref.read(playerControllerProvider.notifier);
+
+    if (_isPlaylistActive(tracks)) {
+      controller.toggleShuffle();
+      return;
+    }
+
+    controller.setShuffle(true);
+    final startIdx = Random().nextInt(tracks.length);
+    controller.playList(tracks, startIdx);
   }
 
   Future<void> _showDeletePlaylistDialog(PlaylistDetail pl) async {
@@ -460,8 +491,8 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                     vertical: MelodiaTokens.spacingSm,
                   ),
                   child: isDesktop
-                      ? _buildDesktopHeader(pl, tokens)
-                      : _buildMobileHeader(pl, tokens),
+                      ? _buildDesktopHeader(pl, visibleItems, tokens)
+                      : _buildMobileHeader(pl, visibleItems, tokens),
                 ),
               ),
               const SliverToBoxAdapter(
@@ -492,33 +523,33 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     );
   }
 
-  // Mobile Header (Apple Music themed, layout inspired by modern playlist view)
-  Widget _buildMobileHeader(PlaylistDetail pl, MelodiaTokens tokens) {
+  List<String> _deriveCovers(PlaylistDetail pl, List<PlaylistTrackItem> visibleItems) {
+    final fromTracks = visibleItems
+        .map((it) => it.track.thumbnail)
+        .where((t) => t != null && t.isNotEmpty)
+        .cast<String>()
+        .take(4)
+        .toList();
+    return fromTracks.isNotEmpty ? fromTracks : pl.coverThumbnails;
+  }
+
+  // Mobile Header (Apple Music themed, clean background)
+  Widget _buildMobileHeader(
+      PlaylistDetail pl, List<PlaylistTrackItem> visibleItems, MelodiaTokens tokens) {
     final trackCount = pl.trackCount;
     final durationStr = _formatTotalDuration(pl.durationSeconds);
-    final tracks = pl.tracks.items.map((it) => it.track).toList();
+    final tracks = visibleItems.map((it) => it.track).toList();
+    final covers = _deriveCovers(pl, visibleItems);
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            tokens.accent.withValues(alpha: 0.14),
-            tokens.background,
-          ],
-          stops: const [0.0, 0.72],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: MosaicCover(
-              coverThumbnails: pl.coverThumbnails,
-              size: 200,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Center(
+          child: MosaicCover(
+            coverThumbnails: covers,
+            size: 200,
           ),
+        ),
           const SizedBox(height: MelodiaTokens.spacingLg),
           if (_isEditing)
             TextField(
@@ -574,21 +605,22 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
           const SizedBox(height: MelodiaTokens.spacingMd),
           _buildFeaturePillsRow(pl, tokens),
         ],
-      ),
-    );
+      );
   }
 
   // Desktop Header
-  Widget _buildDesktopHeader(PlaylistDetail pl, MelodiaTokens tokens) {
+  Widget _buildDesktopHeader(
+      PlaylistDetail pl, List<PlaylistTrackItem> visibleItems, MelodiaTokens tokens) {
     final trackCount = pl.trackCount;
     final durationStr = _formatTotalDuration(pl.durationSeconds);
-    final tracks = pl.tracks.items.map((it) => it.track).toList();
+    final tracks = visibleItems.map((it) => it.track).toList();
+    final covers = _deriveCovers(pl, visibleItems);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         MosaicCover(
-          coverThumbnails: pl.coverThumbnails,
+          coverThumbnails: covers,
           size: 200,
         ),
         const SizedBox(width: MelodiaTokens.spacingXl),
@@ -657,14 +689,19 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     );
   }
 
-  // Action Row: Download icon (whole playlist) + Share icon on left, Shuffle + Play circle on right
+  // Action Row: Download icon (whole playlist) + Share icon on left, Shuffle + Play/Pause circle on right
   Widget _buildActionRow({
     required String collectionKey,
     required String title,
     required List<Track> tracks,
     required MelodiaTokens tokens,
   }) {
-    final isShuffle = ref.watch(playerControllerProvider).queue.shuffle;
+    final playerState = ref.watch(playerControllerProvider);
+    final isShuffle = playerState.queue.shuffle;
+    final currentVid = playerState.queue.currentTrack?.videoId;
+    final isThisPlaylistPlaying = currentVid != null &&
+        tracks.any((t) => t.videoId == currentVid) &&
+        playerState.isPlaying;
 
     return Row(
       children: [
@@ -685,13 +722,13 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
         ),
         const Spacer(),
         IconButton(
-          tooltip: 'Shuffle play',
+          tooltip: isShuffle ? 'Shuffle on' : 'Shuffle off',
           icon: Icon(
             Icons.shuffle_rounded,
             size: 24,
             color: isShuffle ? tokens.accent : tokens.textSecondary,
           ),
-          onPressed: tracks.isEmpty ? null : () => _playAll(tracks, shuffle: true),
+          onPressed: tracks.isEmpty ? null : () => _onShufflePressed(tracks),
         ),
         const SizedBox(width: MelodiaTokens.spacingSm),
         Material(
@@ -699,12 +736,14 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),
-            onTap: tracks.isEmpty ? null : () => _playAll(tracks, shuffle: false),
+            onTap: tracks.isEmpty ? null : () => _onPlayPausePressed(tracks),
             child: SizedBox(
               width: 48,
               height: 48,
               child: Icon(
-                Icons.play_arrow_rounded,
+                isThisPlaylistPlaying
+                    ? Icons.pause_rounded
+                    : Icons.play_arrow_rounded,
                 size: 30,
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
@@ -961,51 +1000,38 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                     horizontal: MelodiaTokens.spacingLg,
                     vertical: MelodiaTokens.spacingSm,
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          tokens.accent.withValues(alpha: 0.14),
-                          tokens.background,
-                        ],
-                        stops: const [0.0, 0.72],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Center(
+                        child: MosaicCover(
+                          coverThumbnails: [],
+                          size: 200,
+                          isLikedSongs: true,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Center(
-                          child: MosaicCover(
-                            coverThumbnails: [],
-                            size: 200,
-                            isLikedSongs: true,
-                          ),
+                      const SizedBox(height: MelodiaTokens.spacingLg),
+                      Text(
+                        'Liked Songs',
+                        style: MelodiaTokens.title2.copyWith(
+                          color: tokens.text,
+                          fontWeight: FontWeight.w700,
                         ),
-                        const SizedBox(height: MelodiaTokens.spacingLg),
-                        Text(
-                          'Liked Songs',
-                          style: MelodiaTokens.title2.copyWith(
-                            color: tokens.text,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
-                          style: MelodiaTokens.footnote
-                              .copyWith(color: tokens.textSecondary),
-                        ),
-                        const SizedBox(height: MelodiaTokens.spacingMd),
-                        _buildActionRow(
-                          collectionKey: 'liked_songs',
-                          title: 'Liked Songs',
-                          tracks: tracks,
-                          tokens: tokens,
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
+                        style: MelodiaTokens.footnote
+                            .copyWith(color: tokens.textSecondary),
+                      ),
+                      const SizedBox(height: MelodiaTokens.spacingMd),
+                      _buildActionRow(
+                        collectionKey: 'liked_songs',
+                        title: 'Liked Songs',
+                        tracks: tracks,
+                        tokens: tokens,
+                      ),
+                    ],
                   ),
                 ),
               ),

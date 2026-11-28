@@ -302,6 +302,17 @@ class Playlist {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'track_count': trackCount,
+        'duration_seconds': durationSeconds,
+        'cover_thumbnails': coverThumbnails,
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
+      };
+
   factory Playlist.fromJson(Map<String, dynamic> json) => Playlist(
         id: json['id'] as String,
         name: (json['name'] as String?) ?? '',
@@ -328,6 +339,12 @@ class PlaylistTrackItem {
   final int position;
   final DateTime addedAt;
   final Track track;
+
+  Map<String, dynamic> toJson() => {
+        'position': position,
+        'added_at': addedAt.toIso8601String(),
+        'track': track.toJson(),
+      };
 
   factory PlaylistTrackItem.fromJson(Map<String, dynamic> json) =>
       PlaylistTrackItem(
@@ -382,6 +399,21 @@ class PlaylistDetail {
       tracks: tracks ?? this.tracks,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'track_count': trackCount,
+        'duration_seconds': durationSeconds,
+        'cover_thumbnails': coverThumbnails,
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
+        'tracks': {
+          'items': tracks.items.map((e) => e.toJson()).toList(),
+          'next_cursor': tracks.nextCursor,
+        },
+      };
 
   factory PlaylistDetail.fromJson(Map<String, dynamic> json) {
     final tracksJson = json['tracks'] as Map<String, dynamic>? ?? {};
