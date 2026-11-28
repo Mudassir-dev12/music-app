@@ -18,7 +18,6 @@ from app.routes import (
     playlists,
     search,
     tracks,
-    voice,
 )
 from app.services.usage import bandwidth_guard
 
@@ -98,4 +97,3 @@ app.include_router(discover.router)
 app.include_router(catalog.router)
 app.include_router(tracks.router)
 app.include_router(audio.router)
-app.include_router(voice.router)

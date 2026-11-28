@@ -84,13 +84,6 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_DOWNLOADS_PER_USER: int = 2
     MAX_CONCURRENT_DOWNLOADS_GLOBAL: int = 4
 
-    # Phase 6: Voice LLM Fallback (disabled by default)
-    VOICE_LLM_ENABLED: bool = False
-    VOICE_LLM_PROVIDER: str = "openai"
-    VOICE_LLM_API_KEY: str = ""
-    VOICE_LLM_MODEL: str = "gpt-4o-mini"
-    VOICE_RATE_LIMIT_PER_MIN: int = 10
-
     # Performance & Instant Playback
     URL_REFRESH_AHEAD_RATIO: float = 0.8
     URL_REFRESH_MAX_CONCURRENT: int = 1
