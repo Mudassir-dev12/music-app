@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -67,10 +68,127 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     final hours = totalSeconds ~/ 3600;
     final minutes = (totalSeconds % 3600) ~/ 60;
     if (hours > 0) {
-      return ', $hours hr $minutes min';
+      return ' • $hours hr $minutes min';
     } else {
-      return ', $minutes min';
+      return ' • $minutes min';
     }
+  }
+
+  Future<void> _sharePlaylist(String title, List<Track> tracks) async {
+    final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+    final lines = <String>[
+      title,
+      '${tracks.length} ${tracks.length == 1 ? 'song' : 'songs'}',
+      '',
+      ...tracks.take(20).toList().asMap().entries.map(
+            (e) => '${e.key + 1}. ${e.value.title} — ${e.value.artist}',
+          ),
+      if (tracks.length > 20) '...and ${tracks.length - 20} more',
+    ];
+    await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Playlist "$title" copied to clipboard',
+            style: MelodiaTokens.footnote.copyWith(color: tokens.text),
+          ),
+          backgroundColor: tokens.surface2,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showNameAndDetailsDialog(PlaylistDetail pl) async {
+    final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+    final nameCtrl = TextEditingController(text: pl.name);
+    final descCtrl = TextEditingController(text: pl.description ?? '');
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: tokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(MelodiaTokens.radiusSheet),
+        ),
+        title: Text(
+          'Name and details',
+          style: MelodiaTokens.title3.copyWith(color: tokens.text),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              style: MelodiaTokens.body.copyWith(color: tokens.text),
+              decoration: InputDecoration(
+                labelText: 'Playlist name',
+                labelStyle: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: tokens.separator),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: tokens.accent),
+                ),
+              ),
+            ),
+            const SizedBox(height: MelodiaTokens.spacingMd),
+            TextField(
+              controller: descCtrl,
+              maxLines: 3,
+              minLines: 1,
+              style: MelodiaTokens.body.copyWith(color: tokens.text),
+              decoration: InputDecoration(
+                labelText: 'Details (optional)',
+                labelStyle: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: tokens.separator),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: tokens.accent),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: Text(
+              'Cancel',
+              style: MelodiaTokens.subhead.copyWith(color: tokens.textSecondary),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: tokens.accent),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: Text(
+              'Save',
+              style: MelodiaTokens.subhead.copyWith(
+                color: Theme.of(dialogCtx).colorScheme.onPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (saved == true && mounted) {
+      final newName = nameCtrl.text.trim();
+      final newDesc = descCtrl.text.trim();
+      if (newName.isNotEmpty) {
+        await ref.read(playlistsProvider.notifier).updatePlaylist(
+              widget.playlistId,
+              name: newName,
+              description: newDesc,
+            );
+        ref.invalidate(playlistDetailProvider(widget.playlistId));
+      }
+    }
+    nameCtrl.dispose();
+    descCtrl.dispose();
   }
 
   void _playAll(List<Track> tracks, {bool shuffle = false}) {
@@ -374,63 +492,89 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     );
   }
 
-  // Mobile Header
+  // Mobile Header (Apple Music themed, layout inspired by modern playlist view)
   Widget _buildMobileHeader(PlaylistDetail pl, MelodiaTokens tokens) {
     final trackCount = pl.trackCount;
     final durationStr = _formatTotalDuration(pl.durationSeconds);
+    final tracks = pl.tracks.items.map((it) => it.track).toList();
 
-    return Column(
-      children: [
-        Center(
-          child: MosaicCover(
-            coverThumbnails: pl.coverThumbnails,
-            size: 180,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            tokens.accent.withValues(alpha: 0.14),
+            tokens.background,
+          ],
+          stops: const [0.0, 0.72],
         ),
-        const SizedBox(height: MelodiaTokens.spacingLg),
-        if (_isEditing)
-          TextField(
-            controller: _nameController,
-            textAlign: TextAlign.center,
-            style: MelodiaTokens.title2.copyWith(
-              color: tokens.text,
-              fontWeight: FontWeight.w700,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: MosaicCover(
+              coverThumbnails: pl.coverThumbnails,
+              size: 200,
             ),
-            decoration: InputDecoration(
-              hintText: 'Playlist Name',
-              hintStyle:
-                  MelodiaTokens.title2.copyWith(color: tokens.textTertiary),
-              border: UnderlineInputBorder(
-                borderSide: BorderSide(color: tokens.accent),
+          ),
+          const SizedBox(height: MelodiaTokens.spacingLg),
+          if (_isEditing)
+            TextField(
+              controller: _nameController,
+              style: MelodiaTokens.title2.copyWith(
+                color: tokens.text,
+                fontWeight: FontWeight.w700,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Playlist Name',
+                hintStyle:
+                    MelodiaTokens.title2.copyWith(color: tokens.textTertiary),
+                border: UnderlineInputBorder(
+                  borderSide: BorderSide(color: tokens.accent),
+                ),
+              ),
+            )
+          else
+            Text(
+              pl.name,
+              style: MelodiaTokens.title2.copyWith(
+                color: tokens.text,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          )
-        else
-          Text(
-            pl.name,
-            textAlign: TextAlign.center,
-            style: MelodiaTokens.title2.copyWith(
-              color: tokens.text,
-              fontWeight: FontWeight.w700,
+          if (pl.description != null && pl.description!.trim().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              pl.description!.trim(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
             ),
+          ],
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.public_rounded, size: 14, color: tokens.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                '$trackCount ${trackCount == 1 ? 'song' : 'songs'}$durationStr',
+                style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+              ),
+            ],
           ),
-        const SizedBox(height: 4),
-        Text(
-          '$trackCount ${trackCount == 1 ? 'song' : 'songs'}$durationStr',
-          style: MelodiaTokens.footnote.copyWith(color: tokens.accent),
-        ),
-        const SizedBox(height: MelodiaTokens.spacingLg),
-        _buildPlayAndShufflePills(
-          pl.tracks.items.map((it) => it.track).toList(),
-          tokens,
-        ),
-        const SizedBox(height: MelodiaTokens.spacingMd),
-        CollectionDownloadButton(
-          collectionKey: widget.isLikedSongs ? 'liked_songs' : 'playlist:${widget.playlistId}',
-          title: pl.name,
-          tracks: pl.tracks.items.map((it) => it.track).toList(),
-        ),
-      ],
+          const SizedBox(height: MelodiaTokens.spacingMd),
+          _buildActionRow(
+            collectionKey: 'playlist:${widget.playlistId}',
+            title: pl.name,
+            tracks: tracks,
+            tokens: tokens,
+          ),
+          const SizedBox(height: MelodiaTokens.spacingMd),
+          _buildFeaturePillsRow(pl, tokens),
+        ],
+      ),
     );
   }
 
@@ -438,6 +582,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
   Widget _buildDesktopHeader(PlaylistDetail pl, MelodiaTokens tokens) {
     final trackCount = pl.trackCount;
     final durationStr = _formatTotalDuration(pl.durationSeconds);
+    final tracks = pl.tracks.items.map((it) => it.track).toList();
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -482,25 +627,29 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+              if (pl.description != null && pl.description!.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  pl.description!.trim(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: MelodiaTokens.footnote.copyWith(color: tokens.textSecondary),
+                ),
+              ],
               const SizedBox(height: 8),
               Text(
                 '$trackCount ${trackCount == 1 ? 'song' : 'songs'}$durationStr',
                 style: MelodiaTokens.footnote.copyWith(color: tokens.accent),
               ),
-              const SizedBox(height: MelodiaTokens.spacingLg),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 340),
-                child: _buildPlayAndShufflePills(
-                  pl.tracks.items.map((it) => it.track).toList(),
-                  tokens,
-                ),
+              const SizedBox(height: MelodiaTokens.spacingMd),
+              _buildActionRow(
+                collectionKey: 'playlist:${widget.playlistId}',
+                title: pl.name,
+                tracks: tracks,
+                tokens: tokens,
               ),
               const SizedBox(height: MelodiaTokens.spacingMd),
-              CollectionDownloadButton(
-                collectionKey: widget.isLikedSongs ? 'liked_songs' : 'playlist:${widget.playlistId}',
-                title: pl.name,
-                tracks: pl.tracks.items.map((it) => it.track).toList(),
-              ),
+              _buildFeaturePillsRow(pl, tokens),
             ],
           ),
         ),
@@ -508,48 +657,141 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     );
   }
 
-  // Play & Shuffle Pills
-  Widget _buildPlayAndShufflePills(List<Track> tracks, MelodiaTokens tokens) {
+  // Action Row: Download icon (whole playlist) + Share icon on left, Shuffle + Play circle on right
+  Widget _buildActionRow({
+    required String collectionKey,
+    required String title,
+    required List<Track> tracks,
+    required MelodiaTokens tokens,
+  }) {
+    final isShuffle = ref.watch(playerControllerProvider).queue.shuffle;
+
     return Row(
       children: [
-        Expanded(
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: tokens.surface2,
-              foregroundColor: tokens.accent,
-              minimumSize: const Size(0, 48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
-              ),
-            ),
-            icon: Icon(Icons.play_arrow_rounded, color: tokens.accent, size: 24),
-            label: Text(
-              'Play',
-              style: MelodiaTokens.headline.copyWith(color: tokens.accent),
-            ),
-            onPressed: () => _playAll(tracks, shuffle: false),
-          ),
+        CollectionDownloadButton(
+          collectionKey: collectionKey,
+          title: title,
+          tracks: tracks,
+          compact: true,
         ),
-        const SizedBox(width: MelodiaTokens.spacingMd),
-        Expanded(
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: tokens.surface2,
-              foregroundColor: tokens.accent,
-              minimumSize: const Size(0, 48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+        IconButton(
+          tooltip: 'Share playlist',
+          icon: Icon(
+            Icons.share_outlined,
+            size: 24,
+            color: tokens.textSecondary,
+          ),
+          onPressed: () => _sharePlaylist(title, tracks),
+        ),
+        const Spacer(),
+        IconButton(
+          tooltip: 'Shuffle play',
+          icon: Icon(
+            Icons.shuffle_rounded,
+            size: 24,
+            color: isShuffle ? tokens.accent : tokens.textSecondary,
+          ),
+          onPressed: tracks.isEmpty ? null : () => _playAll(tracks, shuffle: true),
+        ),
+        const SizedBox(width: MelodiaTokens.spacingSm),
+        Material(
+          color: tokens.accent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: tracks.isEmpty ? null : () => _playAll(tracks, shuffle: false),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Icon(
+                Icons.play_arrow_rounded,
+                size: 30,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
-            icon: Icon(Icons.shuffle_rounded, color: tokens.accent, size: 20),
-            label: Text(
-              'Shuffle',
-              style: MelodiaTokens.headline.copyWith(color: tokens.accent),
-            ),
-            onPressed: () => _playAll(tracks, shuffle: true),
           ),
         ),
       ],
+    );
+  }
+
+  // Feature Pill Buttons Row: + Add | Edit | Name and details
+  Widget _buildFeaturePillsRow(PlaylistDetail pl, MelodiaTokens tokens) {
+    Widget buildPill({
+      required IconData icon,
+      required String label,
+      required VoidCallback onTap,
+      bool isActive = false,
+    }) {
+      return Material(
+        color: isActive ? tokens.accent.withValues(alpha: 0.16) : tokens.surface2,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 16,
+                  color: isActive ? tokens.accent : tokens.text,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: MelodiaTokens.subhead.copyWith(
+                    color: isActive ? tokens.accent : tokens.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          buildPill(
+            icon: Icons.add_rounded,
+            label: 'Add',
+            onTap: () => context.push('/search'),
+          ),
+          const SizedBox(width: MelodiaTokens.spacingSm),
+          buildPill(
+            icon: _isEditing ? Icons.check_rounded : Icons.menu_rounded,
+            label: _isEditing ? 'Done' : 'Edit',
+            isActive: _isEditing,
+            onTap: () {
+              setState(() {
+                _isEditing = !_isEditing;
+                if (_isEditing) {
+                  _nameController.text = pl.name;
+                } else {
+                  final trimmed = _nameController.text.trim();
+                  if (trimmed.isNotEmpty && trimmed != pl.name) {
+                    ref
+                        .read(playlistsProvider.notifier)
+                        .updatePlaylist(widget.playlistId, name: trimmed);
+                  }
+                }
+              });
+            },
+          ),
+          const SizedBox(width: MelodiaTokens.spacingSm),
+          buildPill(
+            icon: Icons.edit_outlined,
+            label: 'Name and details',
+            onTap: () => _showNameAndDetailsDialog(pl),
+          ),
+        ],
+      ),
     );
   }
 
@@ -719,33 +961,51 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                     horizontal: MelodiaTokens.spacingLg,
                     vertical: MelodiaTokens.spacingSm,
                   ),
-                  child: Column(
-                    children: [
-                      const Center(
-                        child: MosaicCover(
-                          coverThumbnails: [],
-                          size: 180,
-                          isLikedSongs: true,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          tokens.accent.withValues(alpha: 0.14),
+                          tokens.background,
+                        ],
+                        stops: const [0.0, 0.72],
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Center(
+                          child: MosaicCover(
+                            coverThumbnails: [],
+                            size: 200,
+                            isLikedSongs: true,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: MelodiaTokens.spacingLg),
-                      Text(
-                        'Liked Songs',
-                        textAlign: TextAlign.center,
-                        style: MelodiaTokens.title2.copyWith(
-                          color: tokens.text,
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(height: MelodiaTokens.spacingLg),
+                        Text(
+                          'Liked Songs',
+                          style: MelodiaTokens.title2.copyWith(
+                            color: tokens.text,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
-                        style:
-                            MelodiaTokens.footnote.copyWith(color: tokens.accent),
-                      ),
-                      const SizedBox(height: MelodiaTokens.spacingLg),
-                      _buildPlayAndShufflePills(tracks, tokens),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          '$trackCount ${trackCount == 1 ? 'song' : 'songs'}',
+                          style: MelodiaTokens.footnote
+                              .copyWith(color: tokens.textSecondary),
+                        ),
+                        const SizedBox(height: MelodiaTokens.spacingMd),
+                        _buildActionRow(
+                          collectionKey: 'liked_songs',
+                          title: 'Liked Songs',
+                          tracks: tracks,
+                          tokens: tokens,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

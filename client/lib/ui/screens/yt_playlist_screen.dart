@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -116,54 +117,79 @@ class YtPlaylistScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: MelodiaTokens.spacingLg),
 
-                      // Play & Shuffle Pills
+                      // Action row: Download icon (whole playlist) + Share on left, Shuffle + Play circle on right
                       if (pl.tracks.isNotEmpty)
                         Row(
                           children: [
-                            Expanded(
-                              child: FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: tokens.surface2,
-                                  foregroundColor: tokens.accent,
-                                  minimumSize: const Size(0, 48),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
-                                  ),
-                                ),
-                                icon: Icon(Icons.play_arrow_rounded, color: tokens.accent, size: 24),
-                                label: Text(
-                                  'Play',
-                                  style: MelodiaTokens.headline.copyWith(color: tokens.accent),
-                                ),
-                                onPressed: () => _playAll(ref, pl.tracks, shuffle: false),
-                              ),
+                            CollectionDownloadButton(
+                              collectionKey: 'ytplaylist:${pl.id}',
+                              title: pl.title,
+                              tracks: pl.tracks,
+                              compact: true,
                             ),
-                            const SizedBox(width: MelodiaTokens.spacingMd),
-                            Expanded(
-                              child: FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: tokens.surface2,
-                                  foregroundColor: tokens.accent,
-                                  minimumSize: const Size(0, 48),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(MelodiaTokens.radiusCard),
+                            IconButton(
+                              tooltip: 'Share playlist',
+                              icon: Icon(
+                                Icons.share_outlined,
+                                size: 24,
+                                color: tokens.textSecondary,
+                              ),
+                              onPressed: () async {
+                                final lines = <String>[
+                                  pl.title,
+                                  '${pl.tracks.length} ${pl.tracks.length == 1 ? 'song' : 'songs'}',
+                                  '',
+                                  ...pl.tracks.take(20).toList().asMap().entries.map(
+                                        (e) => '${e.key + 1}. ${e.value.title} — ${e.value.artist}',
+                                      ),
+                                  if (pl.tracks.length > 20) '...and ${pl.tracks.length - 20} more',
+                                ];
+                                await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Playlist "${pl.title}" copied to clipboard',
+                                        style: MelodiaTokens.footnote.copyWith(color: tokens.text),
+                                      ),
+                                      backgroundColor: tokens.surface2,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              tooltip: 'Shuffle play',
+                              icon: Icon(
+                                Icons.shuffle_rounded,
+                                size: 24,
+                                color: ref.watch(playerControllerProvider).queue.shuffle
+                                    ? tokens.accent
+                                    : tokens.textSecondary,
+                              ),
+                              onPressed: () => _playAll(ref, pl.tracks, shuffle: true),
+                            ),
+                            const SizedBox(width: MelodiaTokens.spacingSm),
+                            Material(
+                              color: tokens.accent,
+                              shape: const CircleBorder(),
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () => _playAll(ref, pl.tracks, shuffle: false),
+                                child: SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child: Icon(
+                                    Icons.play_arrow_rounded,
+                                    size: 30,
+                                    color: Theme.of(context).colorScheme.onPrimary,
                                   ),
                                 ),
-                                icon: Icon(Icons.shuffle_rounded, color: tokens.accent, size: 24),
-                                label: Text(
-                                  'Shuffle',
-                                  style: MelodiaTokens.headline.copyWith(color: tokens.accent),
-                                ),
-                                onPressed: () => _playAll(ref, pl.tracks, shuffle: true),
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: MelodiaTokens.spacingMd),
-                        CollectionDownloadButton(
-                          collectionKey: 'ytplaylist:${pl.id}',
-                          title: pl.title,
-                          tracks: pl.tracks,
                         ),
                       const SizedBox(height: MelodiaTokens.spacingXl),
                     ],

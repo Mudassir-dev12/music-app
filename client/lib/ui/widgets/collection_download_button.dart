@@ -12,11 +12,13 @@ class CollectionDownloadButton extends ConsumerWidget {
     required this.collectionKey,
     required this.title,
     required this.tracks,
+    this.compact = false,
   });
 
   final String collectionKey;
   final String title;
   final List<Track> tracks;
+  final bool compact;
 
   Future<void> _handleToggle(BuildContext context, WidgetRef ref) async {
     final isSupported = ref.read(isDownloadSupportedProvider);
@@ -110,9 +112,36 @@ class CollectionDownloadButton extends ConsumerWidget {
     final isKeepOffline = syncInfo?.keepOffline ?? false;
     final downloaded = syncInfo?.downloadedTracks ?? 0;
     final total = tracks.length;
+    final isComplete = isKeepOffline && total > 0 && downloaded >= total;
+
+    if (compact) {
+      return IconButton(
+        tooltip: isKeepOffline
+            ? (isComplete ? 'Downloaded' : '$downloaded of $total downloaded')
+            : 'Download playlist',
+        icon: isKeepOffline && !isComplete
+            ? SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  value: total > 0 ? downloaded / total : null,
+                  valueColor: AlwaysStoppedAnimation<Color>(tokens.accent),
+                  backgroundColor: tokens.surface2,
+                ),
+              )
+            : Icon(
+                isComplete
+                    ? Icons.arrow_circle_down_rounded
+                    : Icons.arrow_circle_down_outlined,
+                size: 28,
+                color: isKeepOffline ? tokens.accent : tokens.textSecondary,
+              ),
+        onPressed: () => _handleToggle(context, ref),
+      );
+    }
 
     if (isKeepOffline) {
-      final isComplete = total > 0 && downloaded >= total;
       final label = isComplete
           ? 'Downloaded'
           : '$downloaded of $total downloaded';

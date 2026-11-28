@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -398,6 +399,11 @@ class _DownloadedScreenState extends ConsumerState<DownloadedScreen> {
                                 ),
                                 const SizedBox(width: MelodiaTokens.spacingXs),
                               ],
+                              _DownloadedTrackArtwork(
+                                videoId: item.videoId,
+                                thumbnailUrl: track.thumbnail,
+                              ),
+                              const SizedBox(width: MelodiaTokens.spacingMd),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,7 +465,7 @@ class _DownloadedScreenState extends ConsumerState<DownloadedScreen> {
                     children: [
                       rowWidget,
                       Padding(
-                        padding: const EdgeInsets.only(left: MelodiaTokens.spacingLg),
+                        padding: const EdgeInsets.only(left: MelodiaTokens.spacingLg + 56),
                         child: Divider(
                           height: 0.5,
                           thickness: 0.5,
@@ -474,6 +480,96 @@ class _DownloadedScreenState extends ConsumerState<DownloadedScreen> {
             ),
         ],
       ],
+    );
+  }
+}
+
+class _DownloadedTrackArtwork extends ConsumerStatefulWidget {
+  const _DownloadedTrackArtwork({
+    required this.videoId,
+    this.thumbnailUrl,
+  });
+
+  final String videoId;
+  final String? thumbnailUrl;
+
+  @override
+  ConsumerState<_DownloadedTrackArtwork> createState() =>
+      _DownloadedTrackArtworkState();
+}
+
+class _DownloadedTrackArtworkState
+    extends ConsumerState<_DownloadedTrackArtwork> {
+  late Future<Uint8List?> _localThumbFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _localThumbFuture = _loadLocal();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DownloadedTrackArtwork oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoId != widget.videoId) {
+      _localThumbFuture = _loadLocal();
+    }
+  }
+
+  Future<Uint8List?> _loadLocal() async {
+    try {
+      final bytes = await ref.read(downloadStoreProvider).readThumbnail(widget.videoId);
+      if (bytes != null && bytes.isNotEmpty) {
+        return Uint8List.fromList(bytes);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<MelodiaTokens>()!;
+
+    Widget placeholder() => Container(
+          width: 44,
+          height: 44,
+          color: tokens.surface2,
+          child: Icon(
+            Icons.music_note_rounded,
+            size: 20,
+            color: tokens.textTertiary,
+          ),
+        );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(MelodiaTokens.radiusArtworkSm),
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: FutureBuilder<Uint8List?>(
+          future: _localThumbFuture,
+          builder: (context, snapshot) {
+            final bytes = snapshot.data;
+            if (bytes != null) {
+              return Image.memory(
+                bytes,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => placeholder(),
+              );
+            }
+            final url = widget.thumbnailUrl;
+            if (url != null && url.isNotEmpty) {
+              return CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => placeholder(),
+                errorWidget: (_, __, ___) => placeholder(),
+              );
+            }
+            return placeholder();
+          },
+        ),
+      ),
     );
   }
 }
