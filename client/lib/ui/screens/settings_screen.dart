@@ -13,7 +13,6 @@ import '../../player/autoplay_controller.dart';
 import '../../player/prefetch_coordinator.dart';
 import '../../theme/theme_controller.dart';
 import '../../theme/tokens.dart';
-import '../voice/voice_settings_section.dart';
 import '../widgets/diagnostics_sheet.dart';
 import '../widgets/server_url_dialog.dart';
 
@@ -484,10 +483,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: MelodiaTokens.spacingXl),
-
-          // VOICE CONTROL & RIDE MODE
-          const VoiceSettingsSection(),
           const SizedBox(height: MelodiaTokens.spacingXl),
 
           // 3. LIBRARY

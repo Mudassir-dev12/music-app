@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../voice/voice_controller.dart';
 import 'player_controller.dart';
 
 class MelodiaShortcuts extends ConsumerWidget {
@@ -29,13 +28,9 @@ class MelodiaShortcuts extends ConsumerWidget {
         const SingleActivator(LogicalKeyboardKey.keyM): const _MuteIntent(),
         const SingleActivator(LogicalKeyboardKey.keyS): const _ShuffleIntent(),
         const SingleActivator(LogicalKeyboardKey.keyR): const _RepeatIntent(),
-        const SingleActivator(LogicalKeyboardKey.keyV): const _VoiceIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
-          _VoiceIntent: CallbackAction<_VoiceIntent>(
-            onInvoke: (_) => ref.read(voiceControllerProvider.notifier).startListening(),
-          ),
           _PlayPauseIntent: CallbackAction<_PlayPauseIntent>(
             onInvoke: (_) => controller.togglePlayPause(),
           ),
@@ -115,9 +110,5 @@ class _ShuffleIntent extends Intent {
 
 class _RepeatIntent extends Intent {
   const _RepeatIntent();
-}
-
-class _VoiceIntent extends Intent {
-  const _VoiceIntent();
 }
 

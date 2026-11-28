@@ -53,10 +53,6 @@
 	<array>
 		<string>audio</string>
 	</array>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Melodia uses the microphone for hands-free voice control while riding or listening.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Melodia processes speech commands on-device to control music playback.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
